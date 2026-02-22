@@ -1,18 +1,18 @@
-# Energy Off-Peak Tracker
+# Energy Window Tracker
 
-A Home Assistant custom integration that tracks energy imported **outside** a defined peak window (e.g. 11am–2pm). It creates a sensor whose value accumulates only during off-peak hours.
+A Home Assistant custom integration that tracks energy consumed **during** specific time windows. Each window gets its own sensor showing energy used in that window.
 
 ---
 
 ## How It Works
 
-| Time period | Sensor behaviour |
-|---|---|
-| Before peak window | Tracks total import (all off-peak) |
-| During peak window | Freezes — not accumulating |
-| After peak window | Resumes, with peak usage subtracted |
+| Time period    | Sensor behaviour                                |
+| ---            | ---                                             |
+| Before window  | Value is 0 kWh                                  |
+| During window  | Tracks energy consumed so far (live)             |
+| After window   | Shows final energy used during that window       |
 
-Snapshots are taken at the **start** and **end** of the peak window and persisted to HA storage, so the sensor survives restarts.
+Snapshots are taken at the **start** and **end** of each window and persisted to HA storage, so sensors survive restarts.
 
 ---
 
@@ -21,7 +21,7 @@ Snapshots are taken at the **start** and **end** of the peak window and persiste
 ### HACS (recommended)
 1. Open HACS → Integrations → ⋮ → Custom repositories
 2. Add this repo URL, category **Integration**
-3. Install **Energy Off-Peak Tracker**
+3. Install **Energy Window Tracker**
 4. Restart Home Assistant
 
 ### Manual
@@ -33,32 +33,33 @@ Snapshots are taken at the **start** and **end** of the peak window and persiste
 ## Configuration
 
 1. Go to **Settings → Devices & Services → + Add Integration**
-2. Search for **Energy Off-Peak Tracker**
-3. Fill in the form:
+2. Search for **Energy Window Tracker**
+3. **Step 1** — Enter:
+   - **Sensor name prefix** — e.g. `Energy Import` (each sensor will be `Energy Import - Window Name`)
    - **Source energy sensor** — your daily cumulative kWh sensor (e.g. `sensor.today_energy_import`)
-   - **Peak window start** — e.g. `11:00`
-   - **Peak window end** — e.g. `14:00`
-4. Click **Submit**
+4. **Step 2** — Add one or more windows:
+   - **Window start time** — e.g. `11:00`
+   - **Window end time** — e.g. `14:00`
+   - **Window name (optional)** — e.g. `Morning Peak` (defaults to Window 1, Window 2, etc.)
+   - Check **Add another window** to add more, then click **Submit**
+5. Click **Submit** when done adding windows
 
-The sensor will appear as **Energy Import Off-Peak** (or whatever name you chose).
+Each window creates a separate sensor (e.g. `Energy Import - Morning Peak`). Windows may overlap.
 
 ---
 
 ## Sensor Attributes
 
-| Attribute | Description |
-|---|---|
-| `source_entity` | The tracked source sensor |
-| `peak_start` / `peak_end` | Configured window times |
-| `snapshot_at_peak_start` | kWh value captured at window start |
-| `snapshot_at_peak_end` | kWh value captured at window end |
-| `peak_window_usage_kwh` | Energy used *during* the peak window |
-| `status` | Current calculation mode |
+| Attribute        | Description                                                       |
+| ---              | ---                                                                |
+| source_entity    | The tracked source sensor                                          |
+| start / end      | Window times for this sensor                                       |
+| status           | Current mode: before_window, during_window, after_window, etc.     |
 
 ---
 
 ## Notes
 
 - The source sensor **must** be a daily cumulative total that resets at midnight (e.g. from a Shelly, Fronius, SolarEdge, or similar device)
-- If HA restarts during the peak window, the start snapshot is restored from storage and the end snapshot will be captured at 2pm as normal
-- You can configure multiple instances for different sensors or peak windows
+- If HA restarts during a window, the start snapshot is restored from storage and the end snapshot will be captured at the window end time
+- You can configure multiple instances for different sensors or window sets

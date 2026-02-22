@@ -1,44 +1,56 @@
 {
-  "title": "Energy Off-Peak Tracker",
+  "title": "Energy Window Tracker",
   "config": {
     "step": {
       "user": {
-        "title": "Set up Energy Off-Peak Tracker",
-        "description": "Track energy imported outside a defined peak window.",
+        "title": "Set up Energy Window Tracker",
+        "description": "Track energy consumed during specific time windows. Each window gets its own sensor showing energy used in that window.",
         "data": {
-          "name": "Sensor name",
-          "source_entity": "Source energy sensor",
-          "peak_start": "Peak window start",
-          "peak_end": "Peak window end"
+          "name": "Sensor name prefix",
+          "source_entity": "Source energy sensor"
         },
         "data_description": {
-          "source_entity": "A cumulative kWh sensor that resets daily (e.g. sensor.today_energy_import)",
-          "peak_start": "Time when peak window begins (e.g. 11:00)",
-          "peak_end": "Time when peak window ends (e.g. 14:00)"
+          "source_entity": "A cumulative kWh sensor that resets daily (e.g. sensor.today_energy_import)"
+        }
+      },
+      "add_window": {
+        "title": "Add window",
+        "description": "Define a time window to track. Each window creates a sensor showing energy consumed during that window. Windows may overlap.",
+        "data": {
+          "start": "Window start time",
+          "end": "Window end time",
+          "name": "Window name (optional)",
+          "add_another": "Add another window"
+        },
+        "data_description": {
+          "name": "Optional label for this window. If left blank, defaults to Window 1, Window 2, etc."
         }
       }
     },
     "error": {
-      "peak_start_after_end": "Peak start time must be earlier than peak end time."
+      "window_start_after_end": "Window start time must be earlier than window end time.",
+      "at_least_one_window": "At least one window is required."
     },
     "abort": {
-      "already_configured": "This source entity and peak window are already configured."
+      "already_configured": "This configuration is already set up."
     }
   },
   "options": {
     "step": {
-      "init": {
-        "title": "Update Off-Peak Settings",
+      "add_window": {
+        "title": "Edit windows",
+        "description": "Add or replace windows. You will re-enter all windows you want to track.",
         "data": {
-          "name": "Sensor name",
-          "source_entity": "Source energy sensor",
-          "peak_start": "Peak window start",
-          "peak_end": "Peak window end"
+          "start": "Window start time",
+          "end": "Window end time",
+          "name": "Window name (optional)",
+          "add_another": "Add another window"
         }
       }
     },
     "error": {
-      "peak_start_after_end": "Peak start time must be earlier than peak end time."
+      "window_start_after_end": "Window start time must be earlier than window end time.",
+      "at_least_one_window": "At least one window is required."
     }
   }
 }

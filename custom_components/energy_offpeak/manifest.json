@@ -1,6 +1,6 @@
 {
   "domain": "energy_offpeak",
-  "name": "Energy Off-Peak Tracker",
+  "name": "Energy Window Tracker",
   "version": "1.0.0",
   "documentation": "https://github.com/your-repo/energy-offpeak",
   "issue_tracker": "https://github.com/your-repo/energy-offpeak/issues",

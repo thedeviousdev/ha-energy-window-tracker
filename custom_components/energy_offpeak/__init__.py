@@ -1,4 +1,5 @@
-"""Energy Off-Peak Tracker integration."""
+"""Energy Window Tracker integration."""
+
 from __future__ import annotations
 
 import logging
@@ -14,7 +15,7 @@ PLATFORMS = ["sensor"]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Energy Off-Peak Tracker from a config entry."""
+    """Set up Energy Window Tracker from a config entry."""
     hass.data.setdefault(DOMAIN, {})
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(async_update_options))

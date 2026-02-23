@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.1.0...v1.2.0) (2026-02-23)
+
+
+### Features
+
+* add lovelace integration for cards ([575e890](https://github.com/thedeviousdev/ha-energy-offpeak/commit/575e8901b061119457ff5da3ebe5ffa7cf36441a))
+* add lovelace integration for cards ([f7c1d27](https://github.com/thedeviousdev/ha-energy-offpeak/commit/f7c1d27e4587acf1114ce33ac845de469b149c1d))
+
 ## [1.1.0](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.0.0...v1.1.0) (2026-02-22)
 
 

@@ -48,7 +48,7 @@ To change the source name or add/remove windows:
 1. Go to **Settings → Devices & Services**
 2. Find **Energy Window Tracker** and click the relevant device/entry
 3. Click **CONFIGURE**
-4. The form shows the source name and all current windows plus one empty row. Add a window by filling the new row (start before end). Remove a window by setting start = end or leaving that row empty. Submit.
+4. The form shows the source name and all current windows plus one empty row. To **add** a window: fill the new row with a name and a time range (start before end). To **remove** a window: set its start time equal to end time (e.g. 00:00–00:00) or leave that row empty. Submit; the integration reloads automatically.
 
 ---
 

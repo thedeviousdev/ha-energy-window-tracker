@@ -26,16 +26,21 @@ from .const import (
 
 
 def _time_to_str(t: Any) -> str:
-    """Convert time object or string to HH:MM format."""
-    if t is None:
+    """Convert time object or string to HH:MM format. Never raises."""
+    try:
+        if t is None:
+            return "00:00"
+        if hasattr(t, "strftime"):
+            return t.strftime("%H:%M")
+        if hasattr(t, "hour") and hasattr(t, "minute"):
+            return f"{int(t.hour):02d}:{int(t.minute):02d}"
+        if isinstance(t, str):
+            s = t.strip()[:5]
+            return s if len(s) >= 5 else "00:00"
+        s = str(t).strip()[:5]
+        return s if len(s) >= 5 else "00:00"
+    except (TypeError, ValueError, AttributeError):
         return "00:00"
-    if hasattr(t, "strftime"):
-        return t.strftime("%H:%M")
-    if hasattr(t, "hour") and hasattr(t, "minute"):
-        return f"{t.hour:02d}:{t.minute:02d}"
-    if isinstance(t, str):
-        return t[:5] if len(t) >= 5 else t
-    return str(t)
 
 
 def _get_entity_friendly_name(hass, entity_id: str) -> str:
@@ -77,21 +82,28 @@ def _build_windows_schema(
         default_name = default_source_name
     else:
         default_name = _get_entity_friendly_name(hass, source_entity) if source_entity else DEFAULT_NAME
+    default_name = str(default_name) if default_name else DEFAULT_NAME
     existing = existing_windows or []
+    if not isinstance(existing, list):
+        existing = []
 
     schema_dict: dict[Any, Any] = {
         vol.Required(CONF_NAME, default=default_name): str,
     }
     for i in range(num_rows):
-        if i < len(existing):
+        if i < len(existing) and isinstance(existing[i], dict):
             ex = existing[i]
-            schema_dict[vol.Optional(f"w{i}_name", default=ex.get(CONF_WINDOW_NAME) or ex.get("name") or "")] = str
-            schema_dict[vol.Optional(f"w{i}_start", default=_time_to_str(ex.get(CONF_WINDOW_START) or ex.get("start") or DEFAULT_WINDOW_START))] = selector.TimeSelector()
-            schema_dict[vol.Optional(f"w{i}_end", default=_time_to_str(ex.get(CONF_WINDOW_END) or ex.get("end") or DEFAULT_WINDOW_END))] = selector.TimeSelector()
+            name_val = ex.get(CONF_WINDOW_NAME) or ex.get("name") or ""
+            start_val = _time_to_str(ex.get(CONF_WINDOW_START) or ex.get("start") or DEFAULT_WINDOW_START)
+            end_val = _time_to_str(ex.get(CONF_WINDOW_END) or ex.get("end") or DEFAULT_WINDOW_END)
+            schema_dict[vol.Optional(f"w{i}_name", default=name_val if isinstance(name_val, str) else "")] = str
+            schema_dict[vol.Optional(f"w{i}_start", default=start_val)] = selector.TimeSelector()
+            schema_dict[vol.Optional(f"w{i}_end", default=end_val)] = selector.TimeSelector()
         else:
+            # New row: default 00:00-00:00 so it is skipped unless user sets valid times
             schema_dict[vol.Optional(f"w{i}_name", default="")] = str
-            schema_dict[vol.Optional(f"w{i}_start", default=DEFAULT_WINDOW_START)] = selector.TimeSelector()
-            schema_dict[vol.Optional(f"w{i}_end", default=DEFAULT_WINDOW_END)] = selector.TimeSelector()
+            schema_dict[vol.Optional(f"w{i}_start", default="00:00")] = selector.TimeSelector()
+            schema_dict[vol.Optional(f"w{i}_end", default="00:00")] = selector.TimeSelector()
     return vol.Schema(schema_dict)
 
 
@@ -223,10 +235,13 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Single step: source name + dynamic window rows (existing + 1, no cap)."""
-        current = {**self.config_entry.data, **self.config_entry.options}
+        options = self.config_entry.options or {}
+        current = {**self.config_entry.data, **options}
         source_entity = current.get(CONF_SOURCE_ENTITY) or "sensor.today_energy_import"
         existing = current.get(CONF_WINDOWS) or []
-        num_rows = len(existing) + 1
+        if not isinstance(existing, list):
+            existing = []
+        num_rows = min(len(existing) + 1, 30)  # Cap to avoid 500 from huge schema
         default_name = current.get(CONF_NAME) or _get_entity_friendly_name(self.hass, source_entity)
 
         if user_input is not None:
@@ -244,13 +259,18 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                     errors={"base": "at_least_one_window"},
                 )
             source_name = (user_input.get(CONF_NAME) or "").strip() or default_name
+            new_options = {
+                CONF_NAME: source_name,
+                CONF_SOURCE_ENTITY: source_entity,
+                CONF_WINDOWS: windows,
+            }
+            self.hass.config_entries.async_update_entry(
+                self.config_entry,
+                options=new_options,
+            )
             return self.async_create_entry(
                 title="",
-                data={
-                    CONF_NAME: source_name,
-                    CONF_SOURCE_ENTITY: source_entity,
-                    CONF_WINDOWS: windows,
-                },
+                data=new_options,
             )
 
         return self.async_show_form(

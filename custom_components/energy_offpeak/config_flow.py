@@ -24,8 +24,6 @@ from .const import (
     DOMAIN,
 )
 
-MAX_WINDOWS = 8
-
 
 def _time_to_str(t: Any) -> str:
     """Convert time object or string to HH:MM format."""
@@ -50,64 +48,43 @@ def _get_entity_friendly_name(hass, entity_id: str) -> str:
     return entity_id.split(".")[-1].replace("_", " ").title() if entity_id else DEFAULT_NAME
 
 
-def _build_windows_schema(
-    hass,
-    source_entity: str,
-    existing_windows: list[dict] | None = None,
-    default_source_name: str | None = None,
+# Form-only keys (to avoid CONF_NAME vs CONF_WINDOW_NAME both being "name")
+CONF_SENSOR_NAME = "sensor_name"
+CONF_WINDOW_NAME_FIELD = "window_name"
+
+
+def _build_user_schema(
+    default_name: str = "",
+    default_window_name: str = "",
+    default_start: str = DEFAULT_WINDOW_START,
+    default_end: str = DEFAULT_WINDOW_END,
 ) -> vol.Schema:
-    """Build step 2 schema: source name + window rows (name, start, end per row)."""
-    if default_source_name is not None:
-        default_name = default_source_name
-    else:
-        default_name = _get_entity_friendly_name(hass, source_entity) if source_entity else DEFAULT_NAME
-    existing = existing_windows or []
-
-    schema_dict: dict[Any, Any] = {
-        vol.Required(CONF_NAME, default=default_name): str,
-    }
-
-    for i in range(MAX_WINDOWS):
-        if i < len(existing):
-            ex = existing[i]
-            schema_dict[vol.Optional(f"w{i}_name", default=ex.get(CONF_WINDOW_NAME) or ex.get("name") or "")] = str
-            schema_dict[vol.Optional(f"w{i}_start", default=_time_to_str(ex.get(CONF_WINDOW_START) or ex.get("start") or DEFAULT_WINDOW_START))] = selector.TimeSelector()
-            schema_dict[vol.Optional(f"w{i}_end", default=_time_to_str(ex.get(CONF_WINDOW_END) or ex.get("end") or DEFAULT_WINDOW_END))] = selector.TimeSelector()
-        else:
-            schema_dict[vol.Optional(f"w{i}_name", default="")] = str
-            schema_dict[vol.Optional(f"w{i}_start", default=DEFAULT_WINDOW_START)] = selector.TimeSelector()
-            schema_dict[vol.Optional(f"w{i}_end", default=DEFAULT_WINDOW_END)] = selector.TimeSelector()
-
-    return vol.Schema(schema_dict)
+    """Build single-step schema: sensor name, energy sensor, window name, start, end."""
+    return vol.Schema({
+        vol.Optional(CONF_SENSOR_NAME, default=default_name): str,
+        vol.Required(
+            CONF_SOURCE_ENTITY,
+            default="sensor.today_energy_import",
+        ): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
+        vol.Optional(CONF_WINDOW_NAME_FIELD, default=default_window_name): str,
+        vol.Optional(CONF_WINDOW_START, default=default_start): selector.TimeSelector(),
+        vol.Optional(CONF_WINDOW_END, default=default_end): selector.TimeSelector(),
+    })
 
 
-def _collect_windows_from_input(data: dict) -> list[dict[str, Any]]:
-    """Collect non-empty windows from the row fields. A row is used if start < end."""
-    windows = []
-    for i in range(MAX_WINDOWS):
-        start = _time_to_str(data.get(f"w{i}_start", "00:00"))
-        end = _time_to_str(data.get(f"w{i}_end", "00:00"))
-        if start >= end:
-            continue
-        name = (data.get(f"w{i}_name") or "").strip()
-        windows.append({
-            CONF_WINDOW_START: start,
-            CONF_WINDOW_END: end,
-            CONF_WINDOW_NAME: name or None,
-        })
-    return windows
-
-
-def _get_all_window_rows_from_input(data: dict) -> list[dict[str, Any]]:
-    """Get all row data from input (for re-showing form after validation error)."""
-    rows = []
-    for i in range(MAX_WINDOWS):
-        rows.append({
-            CONF_WINDOW_NAME: data.get(f"w{i}_name") or "",
-            CONF_WINDOW_START: _time_to_str(data.get(f"w{i}_start", "00:00")),
-            CONF_WINDOW_END: _time_to_str(data.get(f"w{i}_end", "00:00")),
-        })
-    return rows
+def _build_options_schema(
+    default_name: str,
+    default_window_name: str,
+    default_start: str,
+    default_end: str,
+) -> vol.Schema:
+    """Build options schema: sensor name, window name, start, end (no entity change)."""
+    return vol.Schema({
+        vol.Optional(CONF_SENSOR_NAME, default=default_name): str,
+        vol.Optional(CONF_WINDOW_NAME_FIELD, default=default_window_name): str,
+        vol.Optional(CONF_WINDOW_START, default=default_start): selector.TimeSelector(),
+        vol.Optional(CONF_WINDOW_END, default=default_end): selector.TimeSelector(),
+    })
 
 
 class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -115,88 +92,56 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    def __init__(self) -> None:
-        """Initialize config flow."""
-        self._source_entity: str | None = None
-
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
-        """Step 1: Select energy sensor only."""
-        if user_input is not None:
-            self._source_entity = user_input[CONF_SOURCE_ENTITY]
-            return await self.async_step_windows()
-
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema({
-                vol.Required(
-                    CONF_SOURCE_ENTITY,
-                    default="sensor.today_energy_import",
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor")
-                ),
-            }),
-        )
-
-    async def async_step_windows(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
-        """Step 2: Source name (default from entity) + window rows, then Create."""
+        """Single step: sensor name, energy sensor, window name, start time, end time."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            windows = _collect_windows_from_input(user_input)
-            if not windows:
-                errors["base"] = "at_least_one_window"
+            source_entity = user_input[CONF_SOURCE_ENTITY]
+            start = _time_to_str(user_input.get(CONF_WINDOW_START, "00:00"))
+            end = _time_to_str(user_input.get(CONF_WINDOW_END, "00:00"))
+            if start >= end:
+                errors["base"] = "window_start_after_end"
                 return self.async_show_form(
-                    step_id="windows",
-                    data_schema=_build_windows_schema(
-                        self.hass,
-                        self._source_entity or "",
-                        _get_all_window_rows_from_input(user_input),
-                        default_source_name=user_input.get(CONF_NAME) or "",
+                    step_id="user",
+                    data_schema=_build_user_schema(
+                        default_name=user_input.get(CONF_SENSOR_NAME) or "",
+                        default_window_name=user_input.get(CONF_WINDOW_NAME_FIELD) or "",
+                        default_start=start,
+                        default_end=end,
                     ),
                     errors=errors,
                 )
-            else:
-                # Validate each window
-                for w in windows:
-                    if w[CONF_WINDOW_START] >= w[CONF_WINDOW_END]:
-                        errors["base"] = "window_start_after_end"
-                        break
-                if errors:
-                    return self.async_show_form(
-                        step_id="windows",
-                        data_schema=_build_windows_schema(
-                            self.hass,
-                            self._source_entity or "",
-                            _get_all_window_rows_from_input(user_input),
-                            default_source_name=user_input.get(CONF_NAME) or "",
-                        ),
-                        errors=errors,
-                    )
-                source_name = (user_input.get(CONF_NAME) or "").strip() or _get_entity_friendly_name(
-                    self.hass, self._source_entity or ""
-                )
-                windows_hash = hashlib.sha256(
-                    str(sorted(w.items()) for w in windows).encode()
-                ).hexdigest()[:8]
-                unique_id = f"{self._source_entity}_{windows_hash}"
-                await self.async_set_unique_id(unique_id)
-                self._abort_if_unique_id_configured()
-                return self.async_create_entry(
-                    title=source_name,
-                    data={
-                        CONF_NAME: source_name,
-                        CONF_SOURCE_ENTITY: self._source_entity,
-                        CONF_WINDOWS: windows,
-                    },
-                )
+            source_name = (user_input.get(CONF_SENSOR_NAME) or "").strip() or _get_entity_friendly_name(
+                self.hass, source_entity
+            )
+            window_name = (user_input.get(CONF_WINDOW_NAME_FIELD) or "").strip() or DEFAULT_NAME
+            window = {
+                CONF_WINDOW_START: start,
+                CONF_WINDOW_END: end,
+                CONF_WINDOW_NAME: window_name or None,
+            }
+            windows = [window]
+            windows_hash = hashlib.sha256(
+                str(sorted(w.items()) for w in windows).encode()
+            ).hexdigest()[:8]
+            unique_id = f"{source_entity}_{windows_hash}"
+            await self.async_set_unique_id(unique_id)
+            self._abort_if_unique_id_configured()
+            return self.async_create_entry(
+                title=source_name,
+                data={
+                    CONF_NAME: source_name,
+                    CONF_SOURCE_ENTITY: source_entity,
+                    CONF_WINDOWS: windows,
+                },
+            )
 
         return self.async_show_form(
-            step_id="windows",
-            data_schema=_build_windows_schema(self.hass, self._source_entity or ""),
+            step_id="user",
+            data_schema=_build_user_schema(),
             errors=errors,
         )
 
@@ -219,42 +164,52 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
-        """Single step: source name + window rows (same as initial step 2)."""
+        """Single step: sensor name, window name, start time, end time."""
         current = {**self.config_entry.data, **self.config_entry.options}
         source_entity = current.get(CONF_SOURCE_ENTITY) or "sensor.today_energy_import"
         existing = current.get(CONF_WINDOWS) or []
+        first = existing[0] if existing else {}
+        default_name = current.get(CONF_NAME) or _get_entity_friendly_name(self.hass, source_entity)
+        default_window_name = first.get(CONF_WINDOW_NAME) or first.get("name") or ""
+        default_start = _time_to_str(first.get(CONF_WINDOW_START) or first.get("start") or DEFAULT_WINDOW_START)
+        default_end = _time_to_str(first.get(CONF_WINDOW_END) or first.get("end") or DEFAULT_WINDOW_END)
 
         if user_input is not None:
-            windows = _collect_windows_from_input(user_input)
-            if not windows:
+            start = _time_to_str(user_input.get(CONF_WINDOW_START, "00:00"))
+            end = _time_to_str(user_input.get(CONF_WINDOW_END, "00:00"))
+            if start >= end:
                 return self.async_show_form(
                     step_id="init",
-                    data_schema=_build_windows_schema(self.hass, source_entity, existing),
-                    errors={"base": "at_least_one_window"},
+                    data_schema=_build_options_schema(
+                        user_input.get(CONF_SENSOR_NAME) or default_name,
+                        user_input.get(CONF_WINDOW_NAME_FIELD) or "",
+                        start,
+                        end,
+                    ),
+                    errors={"base": "window_start_after_end"},
                 )
-            for w in windows:
-                if w[CONF_WINDOW_START] >= w[CONF_WINDOW_END]:
-                    return self.async_show_form(
-                        step_id="init",
-                        data_schema=_build_windows_schema(self.hass, source_entity, existing),
-                        errors={"base": "window_start_after_end"},
-                    )
-            source_name = (user_input.get(CONF_NAME) or "").strip() or current.get(CONF_NAME) or DEFAULT_NAME
+            source_name = (user_input.get(CONF_SENSOR_NAME) or "").strip() or default_name
+            window_name = (user_input.get(CONF_WINDOW_NAME_FIELD) or "").strip() or DEFAULT_NAME
+            window = {
+                CONF_WINDOW_START: start,
+                CONF_WINDOW_END: end,
+                CONF_WINDOW_NAME: window_name or None,
+            }
             return self.async_create_entry(
                 title="",
                 data={
                     CONF_NAME: source_name,
                     CONF_SOURCE_ENTITY: source_entity,
-                    CONF_WINDOWS: windows,
+                    CONF_WINDOWS: [window],
                 },
             )
 
         return self.async_show_form(
             step_id="init",
-            data_schema=_build_windows_schema(
-                self.hass,
-                source_entity,
-                list(existing),
-                default_source_name=current.get(CONF_NAME) or DEFAULT_NAME,
+            data_schema=_build_options_schema(
+                default_name,
+                default_window_name,
+                default_start,
+                default_end,
             ),
         )

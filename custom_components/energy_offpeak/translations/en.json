@@ -3,50 +3,24 @@
   "config": {
     "step": {
       "user": {
-        "title": "Select energy sensor",
-        "description": "Choose the cumulative energy sensor that resets daily (e.g. today's import).",
+        "title": "Add energy window",
+        "description": "One window per entry. Add multiple entries for multiple windows.",
         "data": {
-          "source_entity": "Energy sensor"
+          "sensor_name": "Sensor name",
+          "source_entity": "Energy sensor",
+          "window_name": "Window name",
+          "start": "Start time",
+          "end": "End time"
         },
         "data_description": {
-          "source_entity": "A cumulative kWh sensor that resets daily (e.g. sensor.today_energy_import)"
-        }
-      },
-      "windows": {
-        "title": "Source name and windows",
-        "description": "Set the source name (defaults to the sensor name). Add windows: name, start time, end time per row. Leave a row with start = end to skip it. Click Submit when done.",
-        "data": {
-          "name": "Source name",
-          "w0_name": "Window 1 name",
-          "w0_start": "Window 1 start",
-          "w0_end": "Window 1 end",
-          "w1_name": "Window 2 name",
-          "w1_start": "Window 2 start",
-          "w1_end": "Window 2 end",
-          "w2_name": "Window 3 name",
-          "w2_start": "Window 3 start",
-          "w2_end": "Window 3 end",
-          "w3_name": "Window 4 name",
-          "w3_start": "Window 4 start",
-          "w3_end": "Window 4 end",
-          "w4_name": "Window 5 name",
-          "w4_start": "Window 5 start",
-          "w4_end": "Window 5 end",
-          "w5_name": "Window 6 name",
-          "w5_start": "Window 6 start",
-          "w5_end": "Window 6 end",
-          "w6_name": "Window 7 name",
-          "w6_start": "Window 7 start",
-          "w6_end": "Window 7 end",
-          "w7_name": "Window 8 name",
-          "w7_start": "Window 8 start",
-          "w7_end": "Window 8 end"
+          "sensor_name": "Defaults to the energy sensor's name if left empty.",
+          "source_entity": "Cumulative kWh sensor that resets daily (e.g. today's import).",
+          "window_name": "Label for this window (e.g. Morning peak)."
         }
       }
     },
     "error": {
-      "window_start_after_end": "Window start time must be earlier than window end time.",
-      "at_least_one_window": "At least one window is required (start time before end time)."
+      "window_start_after_end": "Start time must be earlier than end time."
     },
     "abort": {
       "already_configured": "This configuration is already set up."
@@ -55,40 +29,18 @@
   "options": {
     "step": {
       "init": {
-        "title": "Edit integration",
-        "description": "Change the source name and window times. Leave a row with start = end to remove it. Click Submit when done.",
+        "title": "Edit energy window",
+        "description": "Change the sensor name, window name, or times.",
         "data": {
-          "name": "Source name",
-          "w0_name": "Window 1 name",
-          "w0_start": "Window 1 start",
-          "w0_end": "Window 1 end",
-          "w1_name": "Window 2 name",
-          "w1_start": "Window 2 start",
-          "w1_end": "Window 2 end",
-          "w2_name": "Window 3 name",
-          "w2_start": "Window 3 start",
-          "w2_end": "Window 3 end",
-          "w3_name": "Window 4 name",
-          "w3_start": "Window 4 start",
-          "w3_end": "Window 4 end",
-          "w4_name": "Window 5 name",
-          "w4_start": "Window 5 start",
-          "w4_end": "Window 5 end",
-          "w5_name": "Window 6 name",
-          "w5_start": "Window 6 start",
-          "w5_end": "Window 6 end",
-          "w6_name": "Window 7 name",
-          "w6_start": "Window 7 start",
-          "w6_end": "Window 7 end",
-          "w7_name": "Window 8 name",
-          "w7_start": "Window 8 start",
-          "w7_end": "Window 8 end"
+          "sensor_name": "Sensor name",
+          "window_name": "Window name",
+          "start": "Start time",
+          "end": "End time"
         }
       }
     },
     "error": {
-      "window_start_after_end": "Window start time must be earlier than window end time.",
-      "at_least_one_window": "At least one window is required."
+      "window_start_after_end": "Start time must be earlier than end time."
     }
   }
 }

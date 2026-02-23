@@ -34,39 +34,24 @@ Snapshots are taken at the **start** and **end** of each window and persisted to
 
 1. Go to **Settings → Devices & Services → + Add Integration**
 2. Search for **Energy Window Tracker**
-3. **Step 1** — Select your **energy sensor** (the daily cumulative kWh sensor, e.g. `sensor.today_energy_import`). Click **Submit**.
-4. **Step 2** — Set **source name** (defaults to the sensor’s name) and add windows:
-   - Each row has: **Window name**, **Start time**, **End time**
-   - Fill in as many rows as you need (up to 8). Leave a row with start = end to skip it.
-   - Click **Submit** when done.
+3. Fill in the single form and submit:
+   - **Sensor name** — Defaults to the energy sensor’s name if left empty
+   - **Energy sensor** — Your daily cumulative kWh sensor (e.g. `sensor.today_energy_import`)
+   - **Window name** — Label for this window (e.g. Morning peak)
+   - **Start time** and **End time** — When this window starts and ends
 
-Each window becomes a separate sensor (e.g. `My Sensor - Morning Peak`). Windows may overlap.
+Each entry creates one sensor. Add the integration again for each extra window you want.
 
 ---
 
 ## Updating after setup
 
-To change the source name or any window’s name or time range:
+To change the sensor name, window name, or times for an entry:
 
 1. Go to **Settings → Devices & Services**
-2. Find **Energy Window Tracker** and click it (the integration card, not an individual sensor)
+2. Find **Energy Window Tracker** and click the relevant device/entry
 3. Click **CONFIGURE**
-4. Edit **Source name** and the window rows (name, start, end). Leave a row with start = end to remove that window. Click **Submit** when done.
-
----
-
-## Dashboard card (Lovelace)
-
-A Lovelace card is included so you can show your window sensors on a dashboard. Add the card's resource once, then add the card and pick your entities.
-
-1. **Add the resource** — In your dashboard: **Dashboard → ⋮ → Resources → + Add resource → URL** and add:
-   ```
-   /energy-window-tracker/energy-window-card.js
-   ```
-   Type: **JavaScript Module**. (If you use YAML for Lovelace, add the same URL under `resources` in your dashboard YAML with `type: module`.)
-2. **Add the card** — Edit a dashboard, add card, choose **Energy Window Tracker**, then add the sensor entities you want to display.
-
-The card shows each entity's name, current value, and unit. No build step is required.
+4. Edit the fields and submit.
 
 ---
 

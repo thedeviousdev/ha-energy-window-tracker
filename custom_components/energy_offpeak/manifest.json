@@ -1,12 +1,1 @@
-{
-  "domain": "energy_offpeak",
-  "name": "Energy Window Tracker",
-  "version": "1.0.0",
-  "documentation": "https://github.com/your-repo/energy-offpeak",
-  "issue_tracker": "https://github.com/your-repo/energy-offpeak/issues",
-  "codeowners": [],
-  "requirements": [],
-  "dependencies": ["frontend", "http"],
-  "iot_class": "local_polling",
-  "config_flow": true
-}
+{"domain": "energy_offpeak", "name": "Energy Window Tracker", "version": "1.0.0", "documentation": "https://github.com/your-repo/energy-offpeak", "issue_tracker": "https://github.com/your-repo/energy-offpeak/issues", "codeowners": [], "requirements": [], "dependencies": [], "iot_class": "local_polling", "config_flow": true}

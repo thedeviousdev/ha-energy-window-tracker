@@ -349,7 +349,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow: add / edit / remove sources under one entry."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
+        super().__init__(config_entry)
 
     def _menu_choices(self, sources: list) -> list[tuple[str, str]]:
         """Build menu options: Add, Edit each source, Done."""
@@ -382,12 +382,16 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             menu = user_input.get("menu", "")
             if menu == "done":
                 if not sources:
-                    return self.async_show_form(
+                    options = [
+                    {"value": v, "label": l}
+                    for v, l in self._menu_choices(sources)
+                ]
+                return self.async_show_form(
                         step_id="init",
                         data_schema=vol.Schema(
                             {
-                                vol.Required("menu", default="add"): vol.In(
-                                    self._menu_choices(sources)
+                                vol.Required("menu", default="add"): selector.SelectSelector(
+                                    selector.SelectSelectorConfig(options=options)
                                 ),
                             }
                         ),
@@ -412,8 +416,14 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         choices = self._menu_choices(sources)
         if not choices:
             choices = [("add", "Add new source"), ("done", "Done")]
+        options = [{"value": v, "label": l} for v, l in choices]
+        default = "done" if sources else "add"
         schema = vol.Schema(
-            {vol.Required("menu", default="done" if sources else "add"): vol.In(choices)}
+            {
+                vol.Required("menu", default=default): selector.SelectSelector(
+                    selector.SelectSelectorConfig(options=options)
+                ),
+            }
         )
         return self.async_show_form(step_id="init", data_schema=schema)
 

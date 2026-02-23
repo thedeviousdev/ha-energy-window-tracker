@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.6.0...v1.6.1) (2026-02-23)
+
+
+### Bug Fixes
+
+* 400 error ([#28](https://github.com/thedeviousdev/ha-energy-offpeak/issues/28)) ([cc1a62f](https://github.com/thedeviousdev/ha-energy-offpeak/commit/cc1a62feff40c59df1835b77f9dcb5810bedf090))
+
 ## [1.6.0](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.5.4...v1.6.0) (2026-02-23)
 
 

@@ -308,21 +308,19 @@ def _build_manage_windows_schema(
     windows: list[dict[str, Any]],
 ) -> vol.Schema:
     """Build init schema: source entity + action selector."""
-    options: list[tuple[str, str]] = [(OPT_ACTION_ADD, "Add new window")]
+    options: dict[str, str] = {OPT_ACTION_ADD: "Add new window"}
     for i, w in enumerate(windows):
         name = (w.get(CONF_WINDOW_NAME) or w.get("name") or "").strip() or f"Window {i + 1}"
-        options.append((f"{OPT_ACTION_EDIT_PREFIX}{i}", f"Edit: {name}"))
-        options.append((f"{OPT_ACTION_DELETE_PREFIX}{i}", f"Delete: {name}"))
-    options.append((OPT_ACTION_DONE, "Save and close"))
+        options[f"{OPT_ACTION_EDIT_PREFIX}{i}"] = f"Edit: {name}"
+        options[f"{OPT_ACTION_DELETE_PREFIX}{i}"] = f"Delete: {name}"
+    options[OPT_ACTION_DONE] = "Save and close"
 
     return vol.Schema({
         vol.Required(
             CONF_SOURCE_ENTITY,
             default=source_entity or "sensor.today_energy_import",
         ): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
-        vol.Required("action", default=OPT_ACTION_DONE): selector.SelectSelector(
-            selector.SelectSelectorConfig(options=options)
-        ),
+        vol.Required("action", default=OPT_ACTION_DONE): vol.In(options),
     })
 
 

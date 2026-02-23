@@ -43,20 +43,25 @@ There is **one integration entry** for Energy Window Tracker. Each entry has **o
 1. Go to **Settings → Devices & Services → + Add Integration**
 2. Search for **Energy Window Tracker**
 3. **Step 1** — Select your **energy sensor** (daily cumulative kWh, e.g. `sensor.today_energy_import`). Submit.
-4. **Step 2** — Set **source name** and add **one window** (name, start time, end time). Submit.
+4. **Step 2** — Add **one window** (name, start time, end time). Submit.
 
-You now have one source with one window. Use **CONFIGURE** to add more windows or change the sensor/name.
+You now have one source with one window. Use **CONFIGURE** to add more windows or change the sensor.
 
 ---
 
-## Updating after setup
+## Manage Windows (Configure)
 
-To edit the source (sensor, name) or add/remove windows:
+To edit the source sensor or add/edit/remove windows:
 
 1. Go to **Settings → Devices & Services**
 2. Find **Energy Window Tracker** and click the entry
-3. Click **CONFIGURE**
-4. Edit the **energy sensor**, **source name**, and **time windows**. Add more windows by filling the empty row at the bottom. Submit to save.
+3. Click **CONFIGURE** — the **Manage Windows** dialog opens
+4. **Source entity** — Select or change the energy sensor
+5. **Windows** — The list shows each window with its name and time range. Use the action dropdown to:
+   - **Add new window** — Opens a form to add a window (name, start, end)
+   - **Edit: [name]** — Opens a form to edit that window
+   - **Delete: [name]** — Removes the window
+   - **Save and close** — Saves changes and closes the dialog
 
 ---
 

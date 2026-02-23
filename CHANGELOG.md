@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.2.0...v1.3.0) (2026-02-23)
+
+
+### Features
+
+* revert back to single entry ([eded7e7](https://github.com/thedeviousdev/ha-energy-offpeak/commit/eded7e7607e3a2cdbe79f27eef583a2ef5fa44cf))
+* revert back to single entry ([5f9d1dc](https://github.com/thedeviousdev/ha-energy-offpeak/commit/5f9d1dce01b2356c542bf1ebf16baf09a42f0d44))
+
 ## [1.2.0](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.1.0...v1.2.0) (2026-02-23)
 
 

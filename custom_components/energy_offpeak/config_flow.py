@@ -107,6 +107,42 @@ def _build_windows_schema(
     return vol.Schema(schema_dict)
 
 
+def _build_windows_schema_options(
+    hass: Any,
+    source_entity: str,
+    existing_windows: list[dict] | None = None,
+    default_source_name: str | None = None,
+    num_rows: int = 1,
+) -> vol.Schema:
+    """Build options-flow schema using text fields for time (avoids TimeSelector 500)."""
+    if default_source_name is not None:
+        default_name = default_source_name
+    else:
+        default_name = _get_entity_friendly_name(hass, source_entity) if source_entity else DEFAULT_NAME
+    default_name = str(default_name) if default_name else DEFAULT_NAME
+    existing = existing_windows or []
+    if not isinstance(existing, list):
+        existing = []
+
+    schema_dict: dict[Any, Any] = {
+        vol.Required(CONF_NAME, default=default_name): str,
+    }
+    for i in range(num_rows):
+        if i < len(existing) and isinstance(existing[i], dict):
+            ex = existing[i]
+            name_val = ex.get(CONF_WINDOW_NAME) or ex.get("name") or ""
+            start_val = _time_to_str(ex.get(CONF_WINDOW_START) or ex.get("start") or DEFAULT_WINDOW_START)
+            end_val = _time_to_str(ex.get(CONF_WINDOW_END) or ex.get("end") or DEFAULT_WINDOW_END)
+            schema_dict[vol.Optional(f"w{i}_name", default=name_val if isinstance(name_val, str) else "")] = str
+            schema_dict[vol.Optional(f"w{i}_start", default=start_val)] = str
+            schema_dict[vol.Optional(f"w{i}_end", default=end_val)] = str
+        else:
+            schema_dict[vol.Optional(f"w{i}_name", default="")] = str
+            schema_dict[vol.Optional(f"w{i}_start", default="00:00")] = str
+            schema_dict[vol.Optional(f"w{i}_end", default="00:00")] = str
+    return vol.Schema(schema_dict)
+
+
 def _collect_windows_from_input(data: dict, num_rows: int) -> list[dict[str, Any]]:
     """Collect windows from form data for rows 0..num_rows-1 where start < end."""
     windows = []
@@ -241,7 +277,8 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         existing = current.get(CONF_WINDOWS) or []
         if not isinstance(existing, list):
             existing = []
-        num_rows = min(len(existing) + 1, 30)  # Cap to avoid 500 from huge schema
+        # Always show at least 2 rows so there is always an "add another" row
+        num_rows = max(2, min(len(existing) + 1, 30))
         default_name = current.get(CONF_NAME) or _get_entity_friendly_name(self.hass, source_entity)
 
         if user_input is not None:
@@ -249,7 +286,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             if not windows:
                 return self.async_show_form(
                     step_id="init",
-                    data_schema=_build_windows_schema(
+                    data_schema=_build_windows_schema_options(
                         self.hass,
                         source_entity,
                         _get_window_rows_from_input(user_input, num_rows),
@@ -275,7 +312,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="init",
-            data_schema=_build_windows_schema(
+            data_schema=_build_windows_schema_options(
                 self.hass,
                 source_entity,
                 list(existing),

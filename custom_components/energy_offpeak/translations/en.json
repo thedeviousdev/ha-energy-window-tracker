@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Edit source and windows",
-        "description": "Change the source name or window rows. Add a window by filling the new row (start before end). Remove a window by setting start = end or leaving the row empty.",
+        "description": "Row 1 is your first window. The last row is for adding another: enter a name and start/end in HH:MM (e.g. 09:00, 17:00) with start before end. Leave the last row as 00:00 and 00:00 to skip. To remove a window, set its start and end to the same time (e.g. 00:00 and 00:00).",
         "data": {
           "name": "Source name",
           "w0_name": "Window 1 name",

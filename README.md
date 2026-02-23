@@ -30,6 +30,12 @@ Snapshots are taken at the **start** and **end** of each window and persisted to
 
 ---
 
+## Updating
+
+After updating the integration (via HACS or by replacing files), **you need to restart Home Assistant manually** for the new version to load.
+
+---
+
 ## Configuration
 
 1. Go to **Settings → Devices & Services → + Add Integration**

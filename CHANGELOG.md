@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.5.4...v1.6.0) (2026-02-23)
+
+
+### Features
+
+* restructure the form ([#26](https://github.com/thedeviousdev/ha-energy-offpeak/issues/26)) ([9b55b2c](https://github.com/thedeviousdev/ha-energy-offpeak/commit/9b55b2cabfaae9088acc755cbd330d8a884e7c32))
+
 ## [1.5.4](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.5.3...v1.5.4) (2026-02-23)
 
 

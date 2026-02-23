@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.6.2...v1.7.0) (2026-02-23)
+
+
+### Features
+
+* convert to buttons ([#32](https://github.com/thedeviousdev/ha-energy-offpeak/issues/32)) ([d2c255e](https://github.com/thedeviousdev/ha-energy-offpeak/commit/d2c255e359e4681252e9f6329f2f4e59c40400a7))
+
 ## [1.6.2](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.6.1...v1.6.2) (2026-02-23)
 
 

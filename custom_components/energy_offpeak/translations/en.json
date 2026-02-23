@@ -39,7 +39,7 @@
     "step": {
       "init": {
         "title": "Manage Windows",
-        "description": "Select the energy sensor and choose an action for each window.",
+        "description": "---\n\n## Windows\n\n{windows_list}\n\nSelect an action below.",
         "data": {
           "source_entity": "Energy sensor",
           "action": "Action"

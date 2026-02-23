@@ -425,14 +425,12 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                     self._save_source(source_entity, new_windows)
                     return await self._async_step_manage_impl(None)
 
-        desc = "---\n\n## Windows\n\n{windows_list}\n\nSelect an action below."
         return self.async_show_form(
             step_id="init",
             data_schema=_build_manage_windows_schema(source_entity, windows),
             description_placeholders={
                 "windows_list": _format_windows_list(windows) or "_No windows yet. Add one below._",
             },
-            description=desc,
         )
 
     async def async_step_add_window(

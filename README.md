@@ -34,24 +34,21 @@ Snapshots are taken at the **start** and **end** of each window and persisted to
 
 1. Go to **Settings → Devices & Services → + Add Integration**
 2. Search for **Energy Window Tracker**
-3. Fill in the single form and submit:
-   - **Sensor name** — Defaults to the energy sensor’s name if left empty
-   - **Energy sensor** — Your daily cumulative kWh sensor (e.g. `sensor.today_energy_import`)
-   - **Window name** — Label for this window (e.g. Morning peak)
-   - **Start time** and **End time** — When this window starts and ends
+3. **Step 1** — Enter **sensor name** (optional; defaults to the energy sensor’s name) and select your **energy sensor** (daily cumulative kWh, e.g. `sensor.today_energy_import`). Submit.
+4. **Step 2** — Set **source name** and add **one window**: window name, start time, end time. Submit.
 
-Each entry creates one sensor. Add the integration again for each extra window you want.
+Each entry starts with one window and one sensor. Add more windows later via CONFIGURE. You can also add the integration again for another energy sensor or grouping.
 
 ---
 
 ## Updating after setup
 
-To change the sensor name, window name, or times for an entry:
+To change the source name or add/remove windows:
 
 1. Go to **Settings → Devices & Services**
 2. Find **Energy Window Tracker** and click the relevant device/entry
 3. Click **CONFIGURE**
-4. Edit the fields and submit.
+4. The form shows the source name and all current windows plus one empty row. Add a window by filling the new row (start before end). Remove a window by setting start = end or leaving that row empty. Submit.
 
 ---
 

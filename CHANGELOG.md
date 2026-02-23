@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.2](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.4.1...v1.4.2) (2026-02-23)
+
+
+### Bug Fixes
+
+* missing rows ([e850ac4](https://github.com/thedeviousdev/ha-energy-offpeak/commit/e850ac4c96c53016be4c1695955072ffbfa5e56f))
+* missing rows ([e03162e](https://github.com/thedeviousdev/ha-energy-offpeak/commit/e03162e1a0f52b402f93b354a55df058369d937b))
+
 ## [1.4.1](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.4.0...v1.4.1) (2026-02-23)
 
 

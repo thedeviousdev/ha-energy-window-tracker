@@ -154,38 +154,6 @@ def _build_windows_schema(
     return vol.Schema(schema_dict)
 
 
-def _build_windows_schema_options(
-    hass: Any,
-    source_entity: str,
-    existing_windows: list[dict[str, str]] | None = None,
-    default_source_name: str | None = None,
-    num_rows: int = 1,
-) -> vol.Schema:
-    """Build options-flow schema using text fields only. All defaults must be plain strings."""
-    # Use only the provided default name (no hass lookups) so schema build cannot fail
-    default_name = str(default_source_name or DEFAULT_NAME).strip() or DEFAULT_NAME
-    default_name = default_name[:200]
-    existing = existing_windows or []
-
-    schema_dict: dict[Any, Any] = {
-        vol.Required(CONF_NAME, default=default_name): str,
-    }
-    for i in range(num_rows):
-        if i < len(existing):
-            ex = existing[i]
-            name_val = str(ex.get(CONF_WINDOW_NAME, "") or "")[:200]
-            start_val = _time_to_str(ex.get(CONF_WINDOW_START))
-            end_val = _time_to_str(ex.get(CONF_WINDOW_END))
-            schema_dict[vol.Optional(f"w{i}_name", default=name_val)] = str
-            schema_dict[vol.Optional(f"w{i}_start", default=start_val)] = str
-            schema_dict[vol.Optional(f"w{i}_end", default=end_val)] = str
-        else:
-            schema_dict[vol.Optional(f"w{i}_name", default="")] = str
-            schema_dict[vol.Optional(f"w{i}_start", default="00:00")] = str
-            schema_dict[vol.Optional(f"w{i}_end", default="00:00")] = str
-    return vol.Schema(schema_dict)
-
-
 def _collect_windows_from_input(data: dict, num_rows: int) -> list[dict[str, Any]]:
     """Collect windows from form data for rows 0..num_rows-1 where start < end."""
     windows = []
@@ -201,38 +169,6 @@ def _collect_windows_from_input(data: dict, num_rows: int) -> list[dict[str, Any
             CONF_WINDOW_NAME: name or None,
         })
     return windows
-
-
-def _build_add_source_schema(
-    num_rows: int,
-    default_name: str = "",
-    default_entity: str = "",
-    existing_windows: list[dict[str, Any]] | None = None,
-) -> vol.Schema:
-    """Schema for adding a new source: entity + name + window rows (string times)."""
-    existing = existing_windows or []
-    existing_safe = _normalize_windows_for_schema(
-        [dict(r) for r in existing] if existing else []
-    )
-    name_default = str(default_name or DEFAULT_NAME).strip()[:200] or DEFAULT_NAME
-    schema_dict: dict[Any, Any] = {
-        vol.Required(
-            CONF_SOURCE_ENTITY,
-            default=default_entity or "sensor.today_energy_import",
-        ): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
-        vol.Required(CONF_NAME, default=name_default): str,
-    }
-    for i in range(num_rows):
-        if i < len(existing_safe):
-            ex = existing_safe[i]
-            schema_dict[vol.Optional(f"w{i}_name", default=str(ex.get(CONF_WINDOW_NAME, "") or "")[:200])] = str
-            schema_dict[vol.Optional(f"w{i}_start", default=_time_to_str(ex.get(CONF_WINDOW_START)))] = str
-            schema_dict[vol.Optional(f"w{i}_end", default=_time_to_str(ex.get(CONF_WINDOW_END)))] = str
-        else:
-            schema_dict[vol.Optional(f"w{i}_name", default="")] = str
-            schema_dict[vol.Optional(f"w{i}_start", default="00:00")] = str
-            schema_dict[vol.Optional(f"w{i}_end", default="00:00")] = str
-    return vol.Schema(schema_dict)
 
 
 def _get_window_rows_from_input(data: dict, num_rows: int) -> list[dict[str, Any]]:
@@ -346,28 +282,18 @@ def _get_sources_from_entry(entry: config_entries.ConfigEntry) -> list[dict[str,
 
 
 class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
-    """Handle options flow: add / edit / remove sources under one entry."""
+    """Handle options flow: edit the single source (entity, name, windows)."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         super().__init__()
         self._config_entry = config_entry
 
-    def _menu_choices(self, sources: list) -> list[tuple[str, str]]:
-        """Build menu options: Add, Edit each source, Done."""
-        choices: list[tuple[str, str]] = [("add", "Add new source")]
-        for i, src in enumerate(sources):
-            if isinstance(src, dict):
-                name = str(src.get(CONF_NAME) or f"Source {i + 1}")[:50]
-                choices.append((f"edit_{i}", f"Edit: {name}"))
-        choices.append(("done", "Done"))
-        return choices
-
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
-        """Menu: Add source, Edit source, or Done."""
+        """Edit the single source: entity, name, and windows."""
         try:
-            return await self._async_step_init_impl(user_input)
+            return await self._async_step_edit_source_impl(user_input)
         except Exception as err:
             _LOGGER.exception(
                 "Energy Window Tracker options flow failed: %s",
@@ -375,86 +301,46 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             )
             raise
 
-    async def _async_step_init_impl(
+    async def _async_step_edit_source_impl(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
+        """Form: entity + name + window rows for the single source."""
         sources = _get_sources_from_entry(self._config_entry)
-        if user_input is not None:
-            menu = user_input.get("menu", "")
-            if menu == "done":
-                if not sources:
-                    options = [
-                    {"value": v, "label": l}
-                    for v, l in self._menu_choices(sources)
-                ]
-                return self.async_show_form(
-                        step_id="init",
-                        data_schema=vol.Schema(
-                            {
-                                vol.Required("menu", default="add"): selector.SelectSelector(
-                                    selector.SelectSelectorConfig(options=options)
-                                ),
-                            }
-                        ),
-                        errors={"base": "at_least_one_source"},
-                    )
-                self.hass.config_entries.async_update_entry(
-                    self._config_entry,
-                    options={CONF_SOURCES: sources},
-                )
-                return self.async_create_entry(title="", data={CONF_SOURCES: sources})
-            if menu == "add":
-                return await self.async_step_add_source()
-            if menu.startswith("edit_"):
-                try:
-                    idx = int(menu.split("_")[1], 10)
-                    if 0 <= idx < len(sources):
-                        self.context["source_index"] = idx
-                        return await self.async_step_edit_source()
-                except (ValueError, IndexError):
-                    pass
-
-        choices = self._menu_choices(sources)
-        if not choices:
-            choices = [("add", "Add new source"), ("done", "Done")]
-        options = [{"value": v, "label": l} for v, l in choices]
-        default = "done" if sources else "add"
-        schema = vol.Schema(
-            {
-                vol.Required("menu", default=default): selector.SelectSelector(
-                    selector.SelectSelectorConfig(options=options)
-                ),
-            }
-        )
-        return self.async_show_form(step_id="init", data_schema=schema)
-
-    async def async_step_add_source(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
-        """Form: entity + name + window rows for a new source."""
-        sources = _get_sources_from_entry(self._config_entry)
-        num_rows = max(2, 10)
-        default_name = str(DEFAULT_NAME)[:200]
+        if not sources or not isinstance(sources[0], dict):
+            return self.async_abort(reason="no_source")
+        src = sources[0]
+        source_entity = str(src.get(CONF_SOURCE_ENTITY) or "sensor.today_energy_import")
+        existing_safe = _normalize_windows_for_schema(src.get(CONF_WINDOWS) or [])
+        default_name = str(src.get(CONF_NAME) or DEFAULT_NAME).strip()[:200] or DEFAULT_NAME
+        # Existing windows + 1 row to add more
+        num_rows = len(existing_safe) + 1
 
         if user_input is not None:
-            source_entity = user_input.get(CONF_SOURCE_ENTITY) or ""
+            source_entity = user_input.get(CONF_SOURCE_ENTITY) or source_entity
             if not source_entity:
                 return self.async_show_form(
-                    step_id="add_source",
-                    data_schema=_build_add_source_schema(num_rows),
+                    step_id="init",
+                    data_schema=_build_edit_source_schema(
+                        source_entity,
+                        existing_safe,
+                        default_name,
+                        num_rows,
+                    ),
                     errors={"base": "source_entity_required"},
                 )
             windows = _collect_windows_from_input(user_input, num_rows)
             if not windows:
+                rows_from_input = _get_window_rows_from_input(user_input, num_rows)
+                safe_rows = _normalize_windows_for_schema(
+                    [dict(r) for r in rows_from_input]
+                )
                 return self.async_show_form(
-                    step_id="add_source",
-                    data_schema=_build_add_source_schema(
+                    step_id="init",
+                    data_schema=_build_edit_source_schema(
+                        source_entity,
+                        safe_rows,
+                        str(user_input.get(CONF_NAME) or default_name)[:200],
                         num_rows,
-                        default_name=user_input.get(CONF_NAME) or default_name,
-                        default_entity=source_entity,
-                        existing_windows=_get_window_rows_from_input(
-                            user_input, num_rows
-                        ),
                     ),
                     errors={"base": "at_least_one_window"},
                 )
@@ -466,76 +352,50 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 CONF_SOURCE_ENTITY: source_entity,
                 CONF_WINDOWS: windows,
             }
-            sources = list(sources) + [new_source]
             self.hass.config_entries.async_update_entry(
                 self._config_entry,
-                options={CONF_SOURCES: sources},
+                options={CONF_SOURCES: [new_source]},
             )
-            return await self._async_step_init_impl(user_input=None)
+            return self.async_create_entry(title="", data={CONF_SOURCES: [new_source]})
 
         return self.async_show_form(
-            step_id="add_source",
-            data_schema=_build_add_source_schema(num_rows),
-        )
-
-    async def async_step_edit_source(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
-        """Form: name + window rows for an existing source (entity fixed)."""
-        source_index = int(self.context.get("source_index", 0))
-        sources = _get_sources_from_entry(self._config_entry)
-        if source_index < 0 or source_index >= len(sources):
-            return await self._async_step_init_impl(user_input=None)
-        src = sources[source_index]
-        if not isinstance(src, dict):
-            return await self._async_step_init_impl(user_input=None)
-        source_entity = str(src.get(CONF_SOURCE_ENTITY) or "sensor.today_energy_import")
-        existing_safe = _normalize_windows_for_schema(src.get(CONF_WINDOWS) or [])
-        num_rows = max(2, min(len(existing_safe) + 1, 10))
-        default_name = str(src.get(CONF_NAME) or DEFAULT_NAME).strip()[:200] or DEFAULT_NAME
-
-        if user_input is not None:
-            windows = _collect_windows_from_input(user_input, num_rows)
-            if not windows:
-                rows_from_input = _get_window_rows_from_input(user_input, num_rows)
-                safe_rows = _normalize_windows_for_schema(
-                    [dict(r) for r in rows_from_input]
-                )
-                return self.async_show_form(
-                    step_id="edit_source",
-                    data_schema=_build_windows_schema_options(
-                        self.hass,
-                        source_entity,
-                        safe_rows,
-                        default_source_name=str(
-                            user_input.get(CONF_NAME) or default_name
-                        )[:200],
-                        num_rows=num_rows,
-                    ),
-                    errors={"base": "at_least_one_window"},
-                    description_placeholders={"entity": source_entity},
-                )
-            source_name = (user_input.get(CONF_NAME) or "").strip() or default_name
-            new_sources = list(sources)
-            new_sources[source_index] = {
-                CONF_NAME: source_name,
-                CONF_SOURCE_ENTITY: source_entity,
-                CONF_WINDOWS: windows,
-            }
-            self.hass.config_entries.async_update_entry(
-                self._config_entry,
-                options={CONF_SOURCES: new_sources},
-            )
-            return await self._async_step_init_impl(user_input=None)
-
-        return self.async_show_form(
-            step_id="edit_source",
-            data_schema=_build_windows_schema_options(
-                self.hass,
+            step_id="init",
+            data_schema=_build_edit_source_schema(
                 source_entity,
                 existing_safe,
-                default_source_name=default_name,
-                num_rows=num_rows,
+                default_name,
+                num_rows,
             ),
-            description_placeholders={"entity": source_entity},
         )
+
+
+def _build_edit_source_schema(
+    source_entity: str,
+    existing_windows: list[dict[str, str]],
+    default_source_name: str,
+    num_rows: int,
+) -> vol.Schema:
+    """Build options schema: entity + name + window rows (one source only)."""
+    existing = existing_windows or []
+    name_default = str(default_source_name or DEFAULT_NAME).strip()[:200] or DEFAULT_NAME
+    schema_dict: dict[Any, Any] = {
+        vol.Required(
+            CONF_SOURCE_ENTITY,
+            default=source_entity or "sensor.today_energy_import",
+        ): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
+        vol.Required(CONF_NAME, default=name_default): str,
+    }
+    for i in range(num_rows):
+        if i < len(existing):
+            ex = existing[i]
+            name_val = str(ex.get(CONF_WINDOW_NAME, "") or "")[:200]
+            start_val = _time_to_str(ex.get(CONF_WINDOW_START))
+            end_val = _time_to_str(ex.get(CONF_WINDOW_END))
+            schema_dict[vol.Optional(f"w{i}_name", default=name_val)] = str
+            schema_dict[vol.Optional(f"w{i}_start", default=start_val)] = selector.TimeSelector()
+            schema_dict[vol.Optional(f"w{i}_end", default=end_val)] = selector.TimeSelector()
+        else:
+            schema_dict[vol.Optional(f"w{i}_name", default="")] = str
+            schema_dict[vol.Optional(f"w{i}_start", default="00:00")] = selector.TimeSelector()
+            schema_dict[vol.Optional(f"w{i}_end", default="00:00")] = selector.TimeSelector()
+    return vol.Schema(schema_dict)

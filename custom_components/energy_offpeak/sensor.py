@@ -244,10 +244,10 @@ def _source_slug(source_entity: str, source_index: int) -> str:
 
 
 def _get_sources_from_config(config: dict[str, Any]) -> list[dict[str, Any]]:
-    """Return list of source dicts from config (CONF_SOURCES)."""
+    """Return the single source from config (one entry = one source)."""
     raw = config.get(CONF_SOURCES)
-    if isinstance(raw, list):
-        return list(raw)
+    if isinstance(raw, list) and raw:
+        return [raw[0]]  # Only first source; one entry = one source
     return []
 
 

@@ -232,33 +232,22 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Initialize config flow."""
         self._source_entity: str | None = None
+        self._pending_entry_title: str | None = None
+        self._pending_sources: list[dict[str, Any]] | None = None
+        self._edit_index: int = 0
+
+    def _get_pending_source(self) -> dict[str, Any]:
+        """Get the single pending source (during initial flow before entry exists)."""
+        if not self._pending_sources or not isinstance(self._pending_sources[0], dict):
+            raise ValueError("No pending source")
+        return self._pending_sources[0]
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Step 1: energy source only."""
         if user_input is not None:
-            source_entity = user_input[CONF_SOURCE_ENTITY]
-            # Validate entity not already in use by another entry
-            for entry in self._async_current_entries():
-                sources = (
-                    entry.data.get(CONF_SOURCES)
-                    or entry.options.get(CONF_SOURCES)
-                    or []
-                )
-                for src in sources:
-                    if (
-                        isinstance(src, dict)
-                        and src.get(CONF_SOURCE_ENTITY) == source_entity
-                    ):
-                        entry_title = entry.title or "Energy Window Tracker"
-                        return self.async_show_form(
-                            step_id="user",
-                            data_schema=_build_step_user_schema(),
-                            errors={"base": "source_already_in_use"},
-                            description_placeholders={"entry_title": entry_title},
-                        )
-            self._source_entity = source_entity
+            self._source_entity = user_input[CONF_SOURCE_ENTITY]
             return await self.async_step_windows()
 
         return self.async_show_form(
@@ -303,23 +292,16 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
             source_name = (user_input.get("source_name") or "").strip() or _get_entity_friendly_name(self.hass, source_entity)
             source_name = (source_name or "Energy Window Tracker").strip()[:200]
-            # Entry title for "Integration entries": user-defined sensor name, or entity name, or default
             entry_title = source_name or "Energy Window Tracker"
-            # Single entry for the whole integration: all sources live under this one entry
-            await self.async_set_unique_id(DOMAIN)
-            self._abort_if_unique_id_configured()
-            return self.async_create_entry(
-                title=entry_title,
-                data={
-                    CONF_SOURCES: [
-                        {
-                            CONF_NAME: source_name,
-                            CONF_SOURCE_ENTITY: source_entity,
-                            CONF_WINDOWS: windows,
-                        }
-                    ],
-                },
-            )
+            self._pending_entry_title = entry_title
+            self._pending_sources = [
+                {
+                    CONF_NAME: source_name,
+                    CONF_SOURCE_ENTITY: source_entity,
+                    CONF_WINDOWS: windows,
+                }
+            ]
+            return await self.async_step_configure_menu(None)
 
         return self.async_show_form(
             step_id="windows",
@@ -329,6 +311,158 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 default_source_name=_get_entity_friendly_name(self.hass, source_entity),
             ),
             errors=errors,
+        )
+
+    async def async_step_configure_menu(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Show Configure Energy Window Tracker menu (after first window, before Done)."""
+        if user_input is not None:
+            next_step = user_input.get("next_step_id")
+            if next_step == "done":
+                return self.async_create_entry(
+                    title=self._pending_entry_title or "Energy Window Tracker",
+                    data={CONF_SOURCES: self._pending_sources or []},
+                )
+            if next_step in ("add_window", "list_windows", "source_entity"):
+                return await getattr(self, f"async_step_{next_step}")(None)
+        return self._async_show_configure_menu()
+
+    def _async_show_configure_menu(self) -> config_entries.FlowResult:
+        """Show the Configure Energy Window Tracker menu (config flow)."""
+        return {
+            "type": data_entry_flow.FlowResultType.MENU,
+            "flow_id": self.flow_id,
+            "handler": self.handler,
+            "step_id": "configure_menu",
+            "menu_options": _build_configure_menu_options_with_done(),
+            "title": "Configure Energy Window Tracker",
+        }
+
+    async def async_step_done(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Create entry and finish (from Configure menu Done)."""
+        return self.async_create_entry(
+            title=self._pending_entry_title or "Energy Window Tracker",
+            data={CONF_SOURCES: self._pending_sources or []},
+        )
+
+    async def async_step_add_window(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Add a window (config flow, pending entry)."""
+        src = self._get_pending_source()
+        source_entity = str(src.get(CONF_SOURCE_ENTITY) or "")
+        if user_input is not None and "w0_start" in user_input:
+            start = _time_to_str(user_input.get("w0_start", "00:00"))
+            end = _time_to_str(user_input.get("w0_end", "00:00"))
+            if start >= end:
+                return self.async_show_form(
+                    step_id="add_window",
+                    data_schema=_build_single_window_schema({
+                        CONF_WINDOW_NAME: user_input.get(CONF_WINDOW_NAME, ""),
+                        CONF_WINDOW_START: start,
+                        CONF_WINDOW_END: end,
+                    }),
+                    errors={"base": "window_start_after_end"},
+                )
+            new_window = {
+                CONF_WINDOW_NAME: (user_input.get(CONF_WINDOW_NAME) or "").strip() or None,
+                CONF_WINDOW_START: start,
+                CONF_WINDOW_END: end,
+            }
+            if not self._pending_sources:
+                return await self.async_step_configure_menu(None)
+            self._pending_sources[0].setdefault(CONF_WINDOWS, []).append(new_window)
+            return await self.async_step_configure_menu(None)
+        return self.async_show_form(
+            step_id="add_window",
+            data_schema=_build_single_window_schema(),
+        )
+
+    async def async_step_manage_windows_empty(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """No windows yet in config flow; submit returns to Configure menu."""
+        if user_input is not None:
+            return await self.async_step_configure_menu(None)
+        return self.async_show_form(
+            step_id="manage_windows_empty",
+            data_schema=vol.Schema({}),
+        )
+
+    async def async_step_list_windows(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Manage windows list (config flow, pending entry)."""
+        src = self._get_pending_source()
+        windows = _normalize_windows_for_schema(src.get(CONF_WINDOWS) or [])
+        if not windows:
+            return await self.async_step_manage_windows_empty(None)
+        if user_input is not None and "window_index" in user_input:
+            raw = user_input.get("window_index")
+            idx = int(raw[0] if isinstance(raw, list) else raw, 10)
+            self._edit_index = idx
+            return await self.async_step_edit_window(None)
+        return self.async_show_form(
+            step_id="list_windows",
+            data_schema=_build_select_window_schema(windows),
+        )
+
+    async def async_step_edit_window(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Edit one window (config flow, pending entry)."""
+        src = self._get_pending_source()
+        windows = _normalize_windows_for_schema(src.get(CONF_WINDOWS) or [])
+        idx = self._edit_index
+        if idx < 0 or idx >= len(windows):
+            return await self.async_step_configure_menu(None)
+        if user_input is not None:
+            if user_input.get("delete_this_window"):
+                windows.pop(idx)
+                self._pending_sources[0][CONF_WINDOWS] = windows
+                return await self.async_step_configure_menu(None)
+            start = _time_to_str(user_input.get("w0_start", "00:00"))
+            end = _time_to_str(user_input.get("w0_end", "00:00"))
+            if start >= end:
+                return self.async_show_form(
+                    step_id="edit_window",
+                    data_schema=_build_single_window_schema(windows[idx], include_delete=True),
+                    errors={"base": "window_start_after_end"},
+                )
+            windows[idx] = {
+                CONF_WINDOW_NAME: (user_input.get(CONF_WINDOW_NAME) or "").strip() or None,
+                CONF_WINDOW_START: start,
+                CONF_WINDOW_END: end,
+            }
+            self._pending_sources[0][CONF_WINDOWS] = windows
+            return await self.async_step_configure_menu(None)
+        return self.async_show_form(
+            step_id="edit_window",
+            data_schema=_build_single_window_schema(windows[idx], include_delete=True),
+        )
+
+    async def async_step_source_entity(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Update energy source (config flow, pending entry)."""
+        if user_input is not None and CONF_SOURCE_ENTITY in user_input:
+            new_entity = user_input.get(CONF_SOURCE_ENTITY) or ""
+            if new_entity and self._pending_sources:
+                name = (user_input.get(CONF_NAME) or "").strip() or _get_entity_friendly_name(self.hass, new_entity)
+                self._pending_sources[0][CONF_SOURCE_ENTITY] = new_entity
+                self._pending_sources[0][CONF_NAME] = (name or "Energy Window Tracker").strip()[:200]
+                if self._pending_entry_title:
+                    self._pending_entry_title = self._pending_sources[0][CONF_NAME]
+            return await self.async_step_configure_menu(None)
+        src = self._get_pending_source()
+        source_entity = str(src.get(CONF_SOURCE_ENTITY) or DEFAULT_SOURCE_ENTITY)
+        current_name = str(src.get(CONF_NAME) or "") or _get_entity_friendly_name(self.hass, source_entity)
+        return self.async_show_form(
+            step_id="source_entity",
+            data_schema=_build_source_entity_schema(source_entity, current_name),
         )
 
     @staticmethod
@@ -355,6 +489,14 @@ def _build_init_menu_options() -> dict[str, str]:
         "add_window": "✚ Add new window",
         "list_windows": "✏️ Manage windows",
         "source_entity": "⚡️ Update energy source",
+    }
+
+
+def _build_configure_menu_options_with_done() -> dict[str, str]:
+    """Same as init menu plus Done (for config flow after first window)."""
+    return {
+        **_build_init_menu_options(),
+        "done": "Done",
     }
 
 
@@ -580,13 +722,8 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             new_windows = [w for i, w in enumerate(windows) if i != idx]
             current_name = src.get(CONF_NAME) or None
             self._save_source(source_entity, new_windows, source_name=current_name)
-            # Remove the sensor entity for the deleted window
-            slug = (
-                source_entity.replace(".", "_").replace(":", "_")[:64]
-                if source_entity
-                else "source_0"
-            )
-            unique_id = f"{self._config_entry.entry_id}_{slug}_{idx}"
+            # Remove the sensor entity for the deleted window (stable unique_id)
+            unique_id = f"{self._config_entry.entry_id}_source_0_{idx}"
             registry = er.async_get(self.hass)
             if entity_id := registry.async_get_entity_id("sensor", DOMAIN, unique_id):
                 registry.async_remove(entity_id)

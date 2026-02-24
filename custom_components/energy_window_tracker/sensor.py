@@ -415,17 +415,20 @@ class WindowEnergySensor(RestoreSensor):
                 self.async_on_remove(unsub)
 
         self._update_value()
-        self.async_write_ha_state()
+        if self.entity_id:
+            self.async_write_ha_state()
 
     async def async_update(self) -> None:
         """Poll source and refresh displayed value for live updates."""
         self._update_value()
-        self.async_write_ha_state()
+        if self.entity_id:
+            self.async_write_ha_state()
 
     @callback
     def _handle_data_update(self) -> None:
         self._update_value()
-        self.async_write_ha_state()
+        if self.entity_id:
+            self.async_write_ha_state()
 
     def _update_value(self) -> None:
         value, status = self._data.get_window_value(self._window)

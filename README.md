@@ -32,16 +32,14 @@ After updating the integration (via HACS or by replacing files), **restart Home 
 
 ## Configuration
 
-Each integration entry has **one energy source** and can have **many time windows**.
-
-> **No duplicate sensors.** You cannot have two Energy Window Tracker entries that use the same energy sensor. Each sensor can only be linked to one entry. To add more windows for that sensor, use **⚙️ Configure** on its entry.
+Each integration entry has **one energy source** and can have **many time windows**. You can create multiple entries that use the same sensor (e.g. different window sets or names).
 
 ### Initial setup
 
 1. Go to **Settings → Devices & Services → + Add Integration**
 2. Search for **Energy Window Tracker**
-3. **Step 1 — Select energy source:** Choose a daily cumulative energy sensor that resets (e.g. `sensor.today_load`). If that sensor is already used by another entry, setup will show an error — edit the existing entry instead.
-4. **Step 2 — Add window:** Optionally set an **Energy source name** (defaults to the sensor’s name). Then name the window and set start and end times. Add more windows or change settings later via **⚙️ Configure**.
+3. **Step 1 — Select energy source:** Choose a daily cumulative energy sensor that resets (e.g. `sensor.today_load`).
+4. **Step 2 — Add window:** Optionally set an **Energy source name** (defaults to the sensor’s name). Then name the window and set start and end times. Submit opens **Configure Energy Window Tracker** (same menu as ⚙️ Configure): add more windows, manage or edit windows, update the source, or click **Done** to finish.
 
 ### ⚙️ Configure (add, edit, remove windows or change source)
 
@@ -70,4 +68,4 @@ The source must be a **daily cumulative total** that resets (e.g. at midnight) �
 The start snapshot is restored from storage, and the end snapshot is taken at the window end time. Your data is preserved.
 
 **How many sources and windows can I have?**  
-Each integration entry has **one energy source** and can have **any number of time windows**. **You cannot use the same sensor in more than one entry** — there are no duplicate entries per sensor. To add or change windows for a sensor, use ⚙️ Configure on that entry.
+Each integration entry has **one energy source** and can have **any number of time windows**. You can create multiple entries that use the same sensor (e.g. different window sets). To add or change windows for an entry, use ⚙️ Configure on that entry.

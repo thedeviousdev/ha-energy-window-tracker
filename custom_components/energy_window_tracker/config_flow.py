@@ -545,6 +545,17 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         """Entry from main menu (menu option 'Manage windows'): show list or empty state."""
         return await self._async_step_manage_windows_impl(user_input)
 
+    async def async_step_manage_windows_empty(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """No windows yet; submit returns to menu."""
+        if user_input is not None:
+            return await self._async_step_manage_impl(None)
+        return self.async_show_form(
+            step_id="manage_windows_empty",
+            data_schema=vol.Schema({}),
+        )
+
     async def async_step_manage_windows(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:

@@ -195,6 +195,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Initialize config flow."""
         self._source_entity: str | None = None
+        self._sensor_name: str = ""
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -202,6 +203,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Step 1: sensor name and energy sensor only."""
         if user_input is not None:
             self._source_entity = user_input[CONF_SOURCE_ENTITY]
+            self._sensor_name = (user_input.get(CONF_SENSOR_NAME) or "").strip()
             return await self.async_step_windows()
 
         return self.async_show_form(
@@ -243,11 +245,17 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     errors=errors,
                 )
             source_name = _get_entity_friendly_name(self.hass, source_entity)
+            # Entry title for "Integration entries": user-defined sensor name, or entity name, or default
+            entry_title = (
+                self._sensor_name
+                or source_name
+                or "Energy Window Tracker"
+            )[:200]
             # Single entry for the whole integration: all sources live under this one entry
             await self.async_set_unique_id(DOMAIN)
             self._abort_if_unique_id_configured()
             return self.async_create_entry(
-                title="Energy Window Tracker",
+                title=entry_title,
                 data={
                     CONF_SOURCES: [
                         {

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.5](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v1.14.4...v1.14.5) (2026-02-24)
+
+
+### Bug Fixes
+
+* schedule save() on event loop from time handlers ([#82](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/82)) ([2e0ba0e](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/2e0ba0ec98bfa36fc6991ab0695c74ac6b34530c))
+
 ## [1.14.4](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v1.14.3...v1.14.4) (2026-02-24)
 
 

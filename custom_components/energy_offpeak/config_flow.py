@@ -295,6 +295,7 @@ def _get_sources_from_entry(entry: config_entries.ConfigEntry) -> list[dict[str,
 MAX_WINDOWS = 30
 OPT_ACTION_EDIT_PREFIX = "edit_"
 OPT_ACTION_DELETE_PREFIX = "delete_"
+OPT_WINDOW_PREFIX = "window_"
 
 
 def _build_init_menu_options() -> dict[str, str]:
@@ -306,21 +307,17 @@ def _build_init_menu_options() -> dict[str, str]:
     }
 
 
-def _build_windows_headers_description(windows: list[dict[str, Any]]) -> str:
-    """Build description with each window name as a header (## Name), then Edit/Delete menu items follow in order."""
-    headers = []
-    for w in windows:
-        name = (w.get(CONF_WINDOW_NAME) or w.get("name") or "").strip() or "Window"
-        headers.append(f"## {name}")
-    return "\n\n".join(headers) + "\n\n" if headers else ""
+def _window_display_name(w: dict[str, Any], index: int) -> str:
+    """Display name for a window (for menu labels)."""
+    name = (w.get(CONF_WINDOW_NAME) or w.get("name") or "").strip()
+    return name or f"Window {index + 1}"
 
 
 def _build_manage_windows_menu_options(windows: list[dict[str, Any]]) -> dict[str, str]:
-    """Build sub-menu: for each window, Edit then Delete (labels fixed). Order matches _build_windows_headers_description."""
+    """Build menu: one option per window (step_id window_N). User picks a window, then sees Edit/Delete."""
     options: dict[str, str] = {}
-    for i in range(len(windows)):
-        options[f"{OPT_ACTION_EDIT_PREFIX}{i}"] = "Edit"
-        options[f"{OPT_ACTION_DELETE_PREFIX}{i}"] = "Delete"
+    for i, w in enumerate(windows):
+        options[f"{OPT_WINDOW_PREFIX}{i}"] = _window_display_name(w, i)
     return options
 
 
@@ -336,17 +333,23 @@ def _build_source_entity_schema(source_entity: str) -> vol.Schema:
 
 def _build_single_window_schema(
     window: dict[str, Any] | None = None,
+    include_delete: bool = False,
 ) -> vol.Schema:
-    """Build schema for add/edit single window."""
+    """Build schema for add/edit single window. include_delete=True adds a 'Delete this window' option (edit only)."""
     w = window or {}
     name_val = str(w.get(CONF_WINDOW_NAME, "") or w.get("name", ""))[:200]
     start_val = _time_to_str(w.get(CONF_WINDOW_START) or w.get("start") or DEFAULT_WINDOW_START)
     end_val = _time_to_str(w.get(CONF_WINDOW_END) or w.get("end") or DEFAULT_WINDOW_END)
-    return vol.Schema({
+    schema_dict: dict[Any, Any] = {
         vol.Optional(CONF_WINDOW_NAME, default=name_val, description="Window name"): str,
         vol.Optional("w0_start", default=start_val, description="Start time"): selector.TimeSelector(),
         vol.Optional("w0_end", default=end_val, description="End time"): selector.TimeSelector(),
-    })
+    }
+    if include_delete:
+        schema_dict[
+            vol.Optional("delete_this_window", default=False, description="Delete this window")
+        ] = bool
+    return vol.Schema(schema_dict)
 
 
 class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
@@ -445,13 +448,10 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 data_schema=vol.Schema({}),
             )
         menu_options = _build_manage_windows_menu_options(windows)
-        description_with_headers = (
-            _build_windows_headers_description(windows) + "Select an action below."
-        )
         return self._async_show_menu(
             step_id="manage_windows",
             menu_options=menu_options,
-            description=description_with_headers,
+            description="Select a window to edit or delete.",
             title="Configure Windows",
         )
 
@@ -511,7 +511,16 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         )
 
     def __getattr__(self, name: str) -> Any:
-        """Provide async_step_edit_N and async_step_delete_N for menu (N = window index)."""
+        """Provide async_step_window_N (Edit/Delete menu for window N), async_step_edit_N, async_step_delete_N."""
+        # User selected a window from the list → go directly to edit form
+        if name.startswith("async_step_window_") and name[17:].isdigit():
+            idx = int(name[17:], 10)
+
+            async def _window_step(user_input: dict[str, Any] | None) -> config_entries.FlowResult:
+                self._edit_index = idx
+                return await self.async_step_edit_window(user_input)
+
+            return _window_step
         if name.startswith("async_step_edit_") and name[16:].isdigit():
             idx = int(name[16:], 10)
 
@@ -573,13 +582,17 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             return await self._async_step_manage_windows_impl(None)
 
         if user_input is not None:
+            if user_input.get("delete_this_window"):
+                self._delete_index = edit_index
+                return await self.async_step_confirm_delete(None)
             start = _time_to_str(user_input.get("w0_start", "00:00"))
             end = _time_to_str(user_input.get("w0_end", "00:00"))
             if start >= end:
                 return self.async_show_form(
                     step_id="edit_window",
                     data_schema=_build_single_window_schema(
-                        {CONF_WINDOW_NAME: user_input.get(CONF_WINDOW_NAME, ""), "start": start, "end": end}
+                        {CONF_WINDOW_NAME: user_input.get(CONF_WINDOW_NAME, ""), "start": start, "end": end},
+                        include_delete=True,
                     ),
                     errors={"base": "window_start_after_end"},
                 )
@@ -594,5 +607,5 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="edit_window",
-            data_schema=_build_single_window_schema(windows[edit_index]),
+            data_schema=_build_single_window_schema(windows[edit_index], include_delete=True),
         )

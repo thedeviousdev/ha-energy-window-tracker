@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.0](https://github.com/thedeviousdev/ha-energy-tracker/compare/v1.11.0...v1.12.0) (2026-02-24)
+
+
+### Features
+
+* rename ([#55](https://github.com/thedeviousdev/ha-energy-tracker/issues/55)) ([af3fe45](https://github.com/thedeviousdev/ha-energy-tracker/commit/af3fe4507aea7b59f15d731321aa7931ed11cf90))
+
 ## [1.11.0](https://github.com/thedeviousdev/ha-energy-tracker/compare/v1.10.3...v1.11.0) (2026-02-24)
 
 

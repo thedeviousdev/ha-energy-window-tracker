@@ -1,4 +1,4 @@
-"""Sensor platform for Energy Window Tracker."""
+"""Sensor platform for Energy Tracker."""
 
 from __future__ import annotations
 

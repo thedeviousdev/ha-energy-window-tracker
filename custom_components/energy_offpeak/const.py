@@ -1,4 +1,4 @@
-"""Constants for the Energy Window Tracker integration."""
+"""Constants for the Energy Tracker integration."""
 
 DOMAIN = "energy_offpeak"
 

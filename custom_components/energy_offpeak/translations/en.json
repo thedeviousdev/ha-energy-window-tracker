@@ -1,22 +1,20 @@
 {
-  "title": "Energy Window Tracker",
+  "title": "Energy Tracker",
   "config": {
     "step": {
       "user": {
-        "title": "Select energy sensor",
-        "description": "Choose the cumulative energy sensor that resets daily (e.g. today's import).",
+        "title": "Select energy source",
+        "description": "Select an energy source that resets daily (e.g. today's import).",
         "data": {
-          "sensor_name": "Sensor name",
-          "source_entity": "Energy sensor"
+          "source_entity": "Energy source"
         },
         "data_description": {
-          "sensor_name": "Defaults to the energy sensor's name if left empty.",
           "source_entity": "Cumulative kWh sensor that resets daily (e.g. sensor.today_energy_import)."
         }
       },
       "windows": {
         "title": "First window",
-        "description": "Add one window: name, start time, end time. You can add more windows later via CONFIGURE.",
+        "description": "Name the window and define the start and end times. You can add, edit and delete windows later via the \"configure\" menu.",
         "data": {
           "w0_name": "Window name",
           "w0_start": "Start time",
@@ -29,7 +27,8 @@
     },
     "error": {
       "window_start_after_end": "Start time must be earlier than end time.",
-      "at_least_one_window": "At least one window is required (start time before end time)."
+      "at_least_one_window": "At least one window is required (start time before end time).",
+      "source_already_in_use": "Energy source already in use, please edit that one instead."
     },
     "abort": {
       "already_configured": "This configuration is already set up."
@@ -38,8 +37,8 @@
   "options": {
     "step": {
       "init": {
-        "title": "Configure Windows",
-        "description": "Select an action below.",
+        "title": "Configure Energy Tracker",
+        "description": "",
         "menu_options": {
           "add_window": "Add new window",
           "list_windows": "Manage windows",
@@ -47,18 +46,22 @@
         }
       },
       "manage_windows": {
-        "title": "Configure Windows",
-        "description": "Select an action below."
+        "title": "Manage windows",
+        "description": "",
+        "data": {
+          "window_index": "Select a window"
+        },
+        "submit": "Select"
       },
       "manage_windows_empty": {
-        "title": "Configure Windows",
+        "title": "Configure Energy Tracker",
         "description": "No windows yet. Use **Add new window** from the previous screen."
       },
       "source_entity": {
         "title": "Change source entity",
         "description": "Select the energy sensor to use.",
         "data": {
-          "source_entity": "Energy sensor"
+          "source_entity": "Energy source"
         }
       },
       "confirm_delete": {
@@ -66,28 +69,32 @@
         "description": "Are you sure you want to delete **{window_name}**? This cannot be undone."
       },
       "add_window": {
-        "title": "Add window",
-        "description": "Add a new time window.",
+        "title": "Add new window",
+        "description": "Name the window and define the start and end times",
         "data": {
           "name": "Window name",
           "w0_start": "Start time",
           "w0_end": "End time"
-        }
+        },
+        "submit": "Save"
       },
       "edit_window": {
         "title": "Edit window",
-        "description": "Edit the time window.",
+        "description": "Edit the window",
         "data": {
           "name": "Window name",
           "w0_start": "Start time",
-          "w0_end": "End time"
-        }
+          "w0_end": "End time",
+          "delete_this_window": "❌ Delete?"
+        },
+        "submit": "Save"
       }
     },
     "error": {
       "window_start_after_end": "Start time must be earlier than end time.",
       "at_least_one_window": "At least one window is required.",
-      "source_entity_required": "Select an energy sensor."
+      "source_entity_required": "Select an energy sensor.",
+      "source_already_in_use": "Energy source already in use, please edit that one instead."
     },
     "abort": {
       "no_source": "No source configured. Please remove and re-add the integration."

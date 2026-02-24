@@ -305,6 +305,7 @@ async def async_setup_entry(
                 windows=windows,
                 is_first=(i == 0),
                 source_slug=slug,
+                source_index=source_index,
                 window_index=i,
             )
             all_sensors.append(sensor)
@@ -349,6 +350,7 @@ class WindowEnergySensor(RestoreSensor):
         windows: list[WindowConfig],
         is_first: bool = False,
         source_slug: str | None = None,
+        source_index: int = 0,
         window_index: int = 0,
     ) -> None:
         self.hass = hass
@@ -358,11 +360,9 @@ class WindowEnergySensor(RestoreSensor):
         self._windows = windows
         self._is_first = is_first
         self._attr_name = f"{config_name} - {window.name}"
-        # Stable unique_id: entry + source + window index (survives add/remove of other sources)
-        if source_slug is not None:
-            self._attr_unique_id = f"{entry_id}_{source_slug}_{window_index}"
-        else:
-            self._attr_unique_id = f"{entry_id}_{window.index}"
+        # Stable unique_id by entry + source slot + window index so entity_id is preserved
+        # when the user updates the energy source (same entry, same slot, same window).
+        self._attr_unique_id = f"{entry_id}_source_{source_index}_{window_index}"
 
     async def async_added_to_hass(self) -> None:
         """Restore state and register listeners."""

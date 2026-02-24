@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.2](https://github.com/thedeviousdev/ha-energy-tracker/compare/v1.12.1...v1.12.2) (2026-02-24)
+
+
+### Bug Fixes
+
+* wrong name ([#60](https://github.com/thedeviousdev/ha-energy-tracker/issues/60)) ([df6b058](https://github.com/thedeviousdev/ha-energy-tracker/commit/df6b058c375653ff9bbdb7bda9591d3855ca2a02))
+
 ## [1.12.1](https://github.com/thedeviousdev/ha-energy-tracker/compare/v1.12.0...v1.12.1) (2026-02-24)
 
 

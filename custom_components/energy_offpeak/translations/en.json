@@ -40,9 +40,9 @@
         "title": "Configure Energy Tracker",
         "description": "",
         "menu_options": {
-          "add_window": "Add new window",
-          "list_windows": "Manage windows",
-          "source_entity": "Change source entity"
+          "add_window": "✚ Add new window",
+          "list_windows": "✏️ Manage windows",
+          "source_entity": "⚡️ Update energy source"
         }
       },
       "manage_windows": {
@@ -59,7 +59,7 @@
       },
       "source_entity": {
         "title": "Change source entity",
-        "description": "Select the energy sensor to use.",
+        "description": "",
         "data": {
           "source_entity": "Energy source"
         }
@@ -80,7 +80,7 @@
       },
       "edit_window": {
         "title": "Edit window",
-        "description": "Edit the window",
+        "description": "",
         "data": {
           "name": "Window name",
           "w0_start": "Start time",

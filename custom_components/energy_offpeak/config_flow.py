@@ -299,9 +299,9 @@ OPT_WINDOW_PREFIX = "window_"
 def _build_init_menu_options() -> dict[str, str]:
     """Build main menu as step_id -> label (dict so labels show without translation lookup)."""
     return {
-        "add_window": "Add new window",
-        "list_windows": "Manage windows",
-        "source_entity": "Change source entity",
+        "add_window": "✚ Add new window",
+        "list_windows": "✏️ Manage windows",
+        "source_entity": "⚡️ Update energy source",
     }
 
 

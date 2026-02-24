@@ -1,7 +1,7 @@
 {
   "domain": "energy_window_tracker",
   "name": "Energy Window Tracker",
-  "version": "1.13.2",
+  "version": "1.13.3",
   "documentation": "https://github.com/thedeviousdev/ha-energy-window-tracker",
   "issue_tracker": "https://github.com/thedeviousdev/ha-energy-window-tracker/issues",
   "codeowners": [],

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.3](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v1.13.2...v1.13.3) (2026-02-24)
+
+
+### Bug Fixes
+
+* empty window error ([#69](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/69)) ([e73b904](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/e73b9049748147e0d2a192f75eba5713ea4e6255))
+
 ## [1.13.2](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v1.13.1...v1.13.2) (2026-02-24)
 
 

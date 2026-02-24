@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.0](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.10.3...v1.11.0) (2026-02-24)
+
+
+### Features
+
+* add logo ([#52](https://github.com/thedeviousdev/ha-energy-offpeak/issues/52)) ([c3fac4d](https://github.com/thedeviousdev/ha-energy-offpeak/commit/c3fac4d61bf1b1f68cc54e0f6b4ae88db2e6260f))
+
 ## [1.10.3](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.10.2...v1.10.3) (2026-02-24)
 
 

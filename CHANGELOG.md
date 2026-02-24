@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.1](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.10.0...v1.10.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* error for window list ([#45](https://github.com/thedeviousdev/ha-energy-offpeak/issues/45)) ([cb0d292](https://github.com/thedeviousdev/ha-energy-offpeak/commit/cb0d2926e30bac9c9dff2ef2c49c9f2770a5035a))
+
 ## [1.10.0](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.9.1...v1.10.0) (2026-02-24)
 
 

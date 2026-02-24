@@ -2,9 +2,7 @@
   "packages": {
     ".": {
       "release-type": "simple",
-      "extra-files": [
-        "custom_components/energy_offpeak/manifest.json"
-      ]
+      "extra-files": ["custom_components/energy_offpeak/manifest.json"]
     }
   }
 }

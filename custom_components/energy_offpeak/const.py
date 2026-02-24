@@ -11,6 +11,7 @@ CONF_WINDOW_END = "end"
 CONF_WINDOW_NAME = "name"
 
 DEFAULT_NAME = "Window"
+DEFAULT_SOURCE_ENTITY = "sensor.today_energy_import"
 DEFAULT_WINDOW_START = "11:00"
 DEFAULT_WINDOW_END = "14:00"
 

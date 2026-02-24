@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.1](https://github.com/thedeviousdev/ha-energy-tracker/compare/v1.12.0...v1.12.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* update strings ([#58](https://github.com/thedeviousdev/ha-energy-tracker/issues/58)) ([5210f0b](https://github.com/thedeviousdev/ha-energy-tracker/commit/5210f0bd20fd3be201d7aaf60a3194391b4651fa))
+
 ## [1.12.0](https://github.com/thedeviousdev/ha-energy-tracker/compare/v1.11.0...v1.12.0) (2026-02-24)
 
 

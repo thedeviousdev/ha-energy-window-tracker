@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.2](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v1.14.1...v1.14.2) (2026-02-24)
+
+
+### Bug Fixes
+
+* update initial Add Entry screen copy ([#76](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/76)) ([796e9df](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/796e9df969754bb251aa7a041ad395e6219bc1a0))
+
 ## [1.14.1](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v1.14.0...v1.14.1) (2026-02-24)
 
 

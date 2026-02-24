@@ -210,7 +210,7 @@ class WindowData:
                 snapshot_end=None,
             )
             _LOGGER.debug("Window '%s' start: %.3f kWh", window.name, value)
-            self.hass.async_create_task(self.save())
+            self._schedule_save()
         self._notify_update()
 
     def _handle_window_end(self, window: WindowConfig, now: datetime) -> None:
@@ -223,7 +223,7 @@ class WindowData:
                 snapshot_end=value,
             )
             _LOGGER.debug("Window '%s' end: %.3f kWh", window.name, value)
-            self.hass.async_create_task(self.save())
+            self._schedule_save()
         self._notify_update()
 
     def _handle_midnight(self, now: datetime) -> None:
@@ -233,8 +233,14 @@ class WindowData:
             for w in self._windows
         }
         self._snapshot_date = dt_util.now().date().isoformat()
-        self.hass.async_create_task(self.save())
+        self._schedule_save()
         self._notify_update()
+
+    def _schedule_save(self) -> None:
+        """Schedule save() on the event loop (time handlers may run from a thread)."""
+        self.hass.loop.call_soon_threadsafe(
+            lambda: self.hass.async_create_task(self.save())
+        )
 
 
 def _source_slug(source_entity: str, source_index: int) -> str:

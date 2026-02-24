@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.9.1...v1.10.0) (2026-02-24)
+
+
+### Features
+
+* reduce clicks to edit ([#43](https://github.com/thedeviousdev/ha-energy-offpeak/issues/43)) ([caff2d4](https://github.com/thedeviousdev/ha-energy-offpeak/commit/caff2d43af91c2c87ac40915cbbaeeb0c68cd546))
+
 ## [1.9.1](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.9.0...v1.9.1) (2026-02-24)
 
 

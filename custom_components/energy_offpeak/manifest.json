@@ -1,7 +1,7 @@
 {
   "domain": "energy_offpeak",
   "name": "Energy Window Tracker",
-  "version": "1.9.1",
+  "version": "1.10.0",
   "documentation": "https://github.com/thedeviousdev/ha-energy-offpeak",
   "issue_tracker": "https://github.com/thedeviousdev/ha-energy-offpeak/issues",
   "codeowners": [],

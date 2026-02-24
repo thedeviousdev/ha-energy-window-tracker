@@ -308,17 +308,22 @@ def _build_init_menu_options() -> dict[str, str]:
 
 
 def _window_display_name(w: dict[str, Any], index: int) -> str:
-    """Display name for a window (for menu labels)."""
+    """Display name for a window (for list/dropdown labels)."""
     name = (w.get(CONF_WINDOW_NAME) or w.get("name") or "").strip()
     return name or f"Window {index + 1}"
 
 
-def _build_manage_windows_menu_options(windows: list[dict[str, Any]]) -> dict[str, str]:
-    """Build menu: one option per window (step_id window_N). User picks a window, then sees Edit/Delete."""
-    options: dict[str, str] = {}
-    for i, w in enumerate(windows):
-        options[f"{OPT_WINDOW_PREFIX}{i}"] = _window_display_name(w, i)
-    return options
+def _build_select_window_schema(windows: list[dict[str, Any]]) -> vol.Schema:
+    """Build schema for 'select a window' form: one dropdown, then user is taken to edit that window."""
+    options = [
+        {"value": str(i), "label": _window_display_name(w, i)}
+        for i, w in enumerate(windows)
+    ]
+    return vol.Schema({
+        vol.Required("window_index", description="Window"): selector.SelectSelector(
+            selector.SelectSelectorConfig(options=options),
+        ),
+    })
 
 
 def _build_source_entity_schema(source_entity: str) -> vol.Schema:
@@ -335,7 +340,7 @@ def _build_single_window_schema(
     window: dict[str, Any] | None = None,
     include_delete: bool = False,
 ) -> vol.Schema:
-    """Build schema for add/edit single window. include_delete=True adds a 'Delete this window' option (edit only)."""
+    """Build schema for add/edit single window. include_delete=True adds 'Delete this window' (edit only)."""
     w = window or {}
     name_val = str(w.get(CONF_WINDOW_NAME, "") or w.get("name", ""))[:200]
     start_val = _time_to_str(w.get(CONF_WINDOW_START) or w.get("start") or DEFAULT_WINDOW_START)
@@ -437,7 +442,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
     async def _async_step_manage_windows_impl(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
-        """Show Manage windows sub-menu: list of windows (by name) to edit or delete."""
+        """Show Manage windows: form to select a window, then user goes to edit that window."""
         src = self._get_current_source()
         windows = _normalize_windows_for_schema(src.get(CONF_WINDOWS) or [])
         if not windows:
@@ -447,10 +452,14 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 step_id="manage_windows_empty",
                 data_schema=vol.Schema({}),
             )
-        menu_options = _build_manage_windows_menu_options(windows)
-        return self._async_show_menu(
+        if user_input is not None:
+            raw = user_input.get("window_index")
+            idx = int(raw[0] if isinstance(raw, list) else raw, 10)
+            self._edit_index = idx
+            return await self.async_step_edit_window(None)
+        return self.async_show_form(
             step_id="manage_windows",
-            menu_options=menu_options,
+            data_schema=_build_select_window_schema(windows),
             description="Select a window to edit or delete.",
             title="Configure Windows",
         )

@@ -38,7 +38,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Manage Windows",
+        "title": "Configure Windows",
         "description": "Select an action below.",
         "menu_options": {
           "add_window": "Add new window",
@@ -47,11 +47,11 @@
         }
       },
       "manage_windows": {
-        "title": "Manage windows",
-        "description": "{windows_headers}Select an action below."
+        "title": "Configure Windows",
+        "description": "Select an action below."
       },
       "manage_windows_empty": {
-        "title": "Manage windows",
+        "title": "Configure Windows",
         "description": "No windows yet. Use **Add new window** from the previous screen."
       },
       "source_entity": {

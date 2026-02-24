@@ -289,9 +289,13 @@ OPT_ACTION_EDIT_PREFIX = "edit_"
 OPT_ACTION_DELETE_PREFIX = "delete_"
 
 
-def _build_manage_menu_options(_windows: list[dict[str, Any]]) -> list[str]:
-    """Build main menu option step_ids: add_window, list_windows, source_entity. (list_windows avoids translation clash with step manage_windows.)"""
-    return ["add_window", "list_windows", "source_entity"]
+def _build_init_menu_options() -> dict[str, str]:
+    """Build main menu as step_id -> label (dict so labels show without translation lookup)."""
+    return {
+        "add_window": "Add new window",
+        "list_windows": "Manage windows",
+        "source_entity": "Change source entity",
+    }
 
 
 def _build_windows_headers_description(windows: list[dict[str, Any]]) -> str:
@@ -384,8 +388,10 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         step_id: str,
         menu_options: list[str] | dict[str, str],
         description_placeholders: dict[str, str] | None = None,
+        description: str | None = None,
+        title: str | None = None,
     ) -> config_entries.FlowResult:
-        """Show a menu step. menu_options: list of step_ids (labels from translation) or dict step_id->label (dynamic, no translation)."""
+        """Show a menu step. menu_options: list of step_ids or dict step_id->label. Optional description/title override translation."""
         result: config_entries.FlowResult = {
             "type": data_entry_flow.FlowResultType.MENU,
             "flow_id": self.flow_id,
@@ -395,6 +401,10 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         }
         if description_placeholders:
             result["description_placeholders"] = description_placeholders
+        if description is not None:
+            result["description"] = description
+        if title is not None:
+            result["title"] = title
         return result
 
     async def _async_step_manage_impl(
@@ -405,10 +415,12 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         source_entity = str(src.get(CONF_SOURCE_ENTITY) or "sensor.today_energy_import")
         windows = _normalize_windows_for_schema(src.get(CONF_WINDOWS) or [])
 
-        menu_options = _build_manage_menu_options(windows)
+        menu_options = _build_init_menu_options()
         return self._async_show_menu(
             step_id="init",
             menu_options=menu_options,
+            description_placeholders={"windows_list": ""},
+            title="Configure Windows",
         )
 
     async def _async_step_manage_windows_impl(
@@ -425,13 +437,14 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 data_schema=vol.Schema({}),
             )
         menu_options = _build_manage_windows_menu_options(windows)
-        description_placeholders = {
-            "windows_headers": _build_windows_headers_description(windows),
-        }
+        description_with_headers = (
+            _build_windows_headers_description(windows) + "Select an action below."
+        )
         return self._async_show_menu(
             step_id="manage_windows",
             menu_options=menu_options,
-            description_placeholders=description_placeholders,
+            description=description_with_headers,
+            title="Configure Windows",
         )
 
     async def async_step_list_windows(

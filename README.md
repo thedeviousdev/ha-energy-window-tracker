@@ -49,16 +49,16 @@ You now have one source with one window. Use **CONFIGURE** to add more windows o
 
 ---
 
-## Manage Windows (Configure)
+## Configure Windows (Configure)
 
 To edit the source sensor or add, edit, or remove windows:
 
 1. Go to **Settings → Devices & Services**
 2. Find **Energy Window Tracker** and click the entry
-3. Click **CONFIGURE** — the **Manage Windows** screen opens with three options. Changes are saved as you go; close the dialog with **Back** when you’re done.
+3. Click **CONFIGURE** — the **Configure Windows** dialog opens with three options. Changes are saved as you go; close the dialog with **Back** when you’re done.
 4. Main menu options:
    - **Add new window** — Opens the form to add a new window (name, start time, end time). After saving you return to the main menu.
-   - **Manage windows** — Opens a second screen listing all windows by their names. Click a window name to open the **edit** form; click **Delete [name]** to remove that window (you’ll be asked to confirm). After editing or deleting you return to this list. If you have no windows yet, this screen will say so and you can go back and use **Add new window**.
+   - **Manage windows** — Opens a second screen where each window is shown as a **header** (its name), with **Edit** and **Delete** under it. Click **Edit** to change that window; click **Delete** to remove it (you’ll be asked to confirm). After editing or deleting you return to this screen. If you have no windows yet, a message is shown and you can go back and use **Add new window**.
    - **Change source entity** — Opens a form to pick a different energy sensor, then returns you to the main menu.
 
 ---

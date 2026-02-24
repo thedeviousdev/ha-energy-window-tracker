@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.8.1...v1.9.0) (2026-02-24)
+
+
+### Features
+
+* add sensor to home screen ([#39](https://github.com/thedeviousdev/ha-energy-offpeak/issues/39)) ([b3bd0c8](https://github.com/thedeviousdev/ha-energy-offpeak/commit/b3bd0c89d7bbeb46eedcdf8da0f75c97d7e01d7b))
+
 ## [1.8.1](https://github.com/thedeviousdev/ha-energy-offpeak/compare/v1.8.0...v1.8.1) (2026-02-24)
 
 

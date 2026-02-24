@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.1](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v1.14.0...v1.14.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* preserve entity_id when updating energy source ([#73](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/73)) ([520e53e](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/520e53edf1730bfcf4a5e2b2d915752acdd5df28))
+
 ## [1.14.0](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v1.13.3...v1.14.0) (2026-02-24)
 
 

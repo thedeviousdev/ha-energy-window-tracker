@@ -104,15 +104,9 @@ def _normalize_windows_for_schema(raw: Any) -> list[dict[str, Any]]:
                 pass
         out.append(
             {
-                CONF_WINDOW_NAME: str(
-                    item.get(CONF_WINDOW_NAME) or item.get("name") or ""
-                )[:200],
-                CONF_WINDOW_START: _time_to_str(
-                    item.get(CONF_WINDOW_START) or item.get("start")
-                ),
-                CONF_WINDOW_END: _time_to_str(
-                    item.get(CONF_WINDOW_END) or item.get("end")
-                ),
+                CONF_WINDOW_NAME: str(item.get(CONF_WINDOW_NAME) or "")[:200],
+                CONF_WINDOW_START: _time_to_str(item.get(CONF_WINDOW_START)),
+                CONF_WINDOW_END: _time_to_str(item.get(CONF_WINDOW_END)),
                 CONF_COST_PER_KWH: cost,
             }
         )
@@ -173,13 +167,9 @@ def _build_windows_schema(
         cost_key = CONF_COST_PER_KWH if (use_simple_keys and i == 0) else f"w{i}_{CONF_COST_PER_KWH}"
         if i < len(existing) and isinstance(existing[i], dict):
             ex = existing[i]
-            name_val = ex.get(CONF_WINDOW_NAME) or ex.get("name") or ""
-            start_val = _time_to_str(
-                ex.get(CONF_WINDOW_START) or ex.get("start") or DEFAULT_WINDOW_START
-            )
-            end_val = _time_to_str(
-                ex.get(CONF_WINDOW_END) or ex.get("end") or DEFAULT_WINDOW_END
-            )
+            name_val = ex.get(CONF_WINDOW_NAME) or ""
+            start_val = _time_to_str(ex.get(CONF_WINDOW_START) or DEFAULT_WINDOW_START)
+            end_val = _time_to_str(ex.get(CONF_WINDOW_END) or DEFAULT_WINDOW_END)
             cost_val = 0.0
             if CONF_COST_PER_KWH in ex and ex[CONF_COST_PER_KWH] is not None:
                 try:
@@ -245,10 +235,10 @@ def _collect_windows_from_input(data: dict, num_rows: int, use_simple_keys: bool
     windows = []
     for i in range(num_rows):
         if use_simple_keys and i == 0:
-            start = _time_to_str(data.get("start") or data.get("w0_start", "00:00"))
-            end = _time_to_str(data.get("end") or data.get("w0_end", "00:00"))
-            name = (data.get("name") or data.get("w0_name") or "").strip()
-            cost = _parse_cost(data.get(CONF_COST_PER_KWH) or data.get(f"w0_{CONF_COST_PER_KWH}"))
+            start = _time_to_str(data.get("start") or "00:00")
+            end = _time_to_str(data.get("end") or "00:00")
+            name = (data.get("name") or "").strip()
+            cost = _parse_cost(data.get(CONF_COST_PER_KWH))
         else:
             start = _time_to_str(data.get(f"w{i}_start", "00:00"))
             end = _time_to_str(data.get(f"w{i}_end", "00:00"))
@@ -273,10 +263,10 @@ def _get_window_rows_from_input(data: dict, num_rows: int, use_simple_keys: bool
     for i in range(num_rows):
         if use_simple_keys and i == 0:
             rows.append({
-                CONF_WINDOW_NAME: data.get("name") or data.get("w0_name") or "",
-                CONF_WINDOW_START: _time_to_str(data.get("start") or data.get("w0_start", "00:00")),
-                CONF_WINDOW_END: _time_to_str(data.get("end") or data.get("w0_end", "00:00")),
-                CONF_COST_PER_KWH: _parse_cost(data.get(CONF_COST_PER_KWH) or data.get(f"w0_{CONF_COST_PER_KWH}")),
+                CONF_WINDOW_NAME: data.get("name") or "",
+                CONF_WINDOW_START: _time_to_str(data.get("start") or "00:00"),
+                CONF_WINDOW_END: _time_to_str(data.get("end") or "00:00"),
+                CONF_COST_PER_KWH: _parse_cost(data.get(CONF_COST_PER_KWH)),
             })
         else:
             rows.append({
@@ -341,8 +331,8 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ),
                     errors=errors,
                 )
-            start = _time_to_str(user_input.get("start") or user_input.get("w0_start", "00:00"))
-            end = _time_to_str(user_input.get("end") or user_input.get("w0_end", "00:00"))
+            start = _time_to_str(user_input.get("start") or "00:00")
+            end = _time_to_str(user_input.get("end") or "00:00")
             if start >= end:
                 errors["base"] = "window_start_after_end"
                 return self.async_show_form(
@@ -573,7 +563,7 @@ def _build_configure_menu_options_with_done() -> dict[str, str]:
 
 def _window_display_name(w: dict[str, Any], index: int) -> str:
     """Display name for a window (for list/dropdown labels)."""
-    name = (w.get(CONF_WINDOW_NAME) or w.get("name") or "").strip()
+    name = (w.get(CONF_WINDOW_NAME) or "").strip()
     return name or f"Window {index + 1}"
 
 
@@ -612,9 +602,9 @@ def _build_source_entity_schema(source_entity: str, current_source_name: str = "
 
 
 def _get_start_end_from_input(user_input: dict[str, Any]) -> tuple[str, str]:
-    """Get start and end time strings from form input (keys 'start'/'end' or 'w0_start'/'w0_end')."""
-    start = _time_to_str(user_input.get("start") or user_input.get("w0_start", "00:00"))
-    end = _time_to_str(user_input.get("end") or user_input.get("w0_end", "00:00"))
+    """Get start and end time strings from form input (keys 'start'/'end')."""
+    start = _time_to_str(user_input.get("start") or "00:00")
+    end = _time_to_str(user_input.get("end") or "00:00")
     return start, end
 
 
@@ -624,11 +614,9 @@ def _build_single_window_schema(
 ) -> vol.Schema:
     """Build schema for add/edit single window. include_delete=True adds 'Delete this window' (edit only)."""
     w = window or {}
-    name_val = str(w.get(CONF_WINDOW_NAME, "") or w.get("name", ""))[:200]
-    start_val = _time_to_str(
-        w.get(CONF_WINDOW_START) or w.get("start") or DEFAULT_WINDOW_START
-    )
-    end_val = _time_to_str(w.get(CONF_WINDOW_END) or w.get("end") or DEFAULT_WINDOW_END)
+    name_val = str(w.get(CONF_WINDOW_NAME, ""))[:200]
+    start_val = _time_to_str(w.get(CONF_WINDOW_START) or DEFAULT_WINDOW_START)
+    end_val = _time_to_str(w.get(CONF_WINDOW_END) or DEFAULT_WINDOW_END)
     cost_val = 0.0
     if CONF_COST_PER_KWH in w and w[CONF_COST_PER_KWH] is not None:
         try:
@@ -802,9 +790,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         idx = self._delete_index
         if idx < 0 or idx >= len(windows):
             return await self._async_step_manage_windows_impl(None)
-        window_name = (
-            windows[idx].get(CONF_WINDOW_NAME) or windows[idx].get("name") or ""
-        ).strip() or f"Window {idx + 1}"
+        window_name = (windows[idx].get(CONF_WINDOW_NAME) or "").strip() or f"Window {idx + 1}"
         if user_input is not None:
             new_windows = [w for i, w in enumerate(windows) if i != idx]
             current_name = src.get(CONF_NAME) or None

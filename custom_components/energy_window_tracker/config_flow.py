@@ -73,6 +73,18 @@ def _time_to_str(t: Any) -> str:
         return "00:00"
 
 
+def _normalize_entity_selector_value(value: Any) -> str:
+    """Normalize EntitySelector result to a single entity_id string (frontend may send list)."""
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, list) and value:
+        first = value[0]
+        return first.strip() if isinstance(first, str) else str(first).strip()
+    return str(value).strip() if value else ""
+
+
 def _get_entity_friendly_name(hass: Any, entity_id: str) -> str:
     """Get friendly name for an entity, fallback to entity id or default."""
     try:
@@ -301,7 +313,15 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> config_entries.FlowResult:
         """Step 1: energy source only."""
         if user_input is not None:
-            self._source_entity = user_input[CONF_SOURCE_ENTITY]
+            self._source_entity = _normalize_entity_selector_value(
+                user_input.get(CONF_SOURCE_ENTITY)
+            )
+            if not self._source_entity:
+                return self.async_show_form(
+                    step_id="user",
+                    data_schema=_build_step_user_schema(),
+                    errors={"base": "source_entity_required"},
+                )
             return await self.async_step_windows()
 
         return self.async_show_form(
@@ -835,7 +855,9 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         windows = _normalize_windows_for_schema(src.get(CONF_WINDOWS) or [])
 
         if user_input is not None and CONF_SOURCE_ENTITY in user_input:
-            new_entity = user_input.get(CONF_SOURCE_ENTITY) or source_entity
+            new_entity = _normalize_entity_selector_value(
+                user_input.get(CONF_SOURCE_ENTITY)
+            ) or source_entity
             if not new_entity:
                 current_name = str(src.get(CONF_NAME) or "") or _get_entity_friendly_name(
                     self.hass, source_entity

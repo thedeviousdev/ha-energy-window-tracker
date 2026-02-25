@@ -38,8 +38,8 @@ Each integration entry has **one energy source** and can have **many time window
 
 1. Go to **Settings → Devices & Services → + Add Integration**
 2. Search for **Energy Window Tracker**
-3. **Step 1 — Select sensor:** Choose a daily cumulative energy sensor that resets (e.g. `sensor.today_load`).
-4. **Step 2 — Add window:** Optionally set a **Friendly name** (defaults to the sensor’s name). Name the window and set start and end times. Optionally set **Cost per kWh ($)** (e.g. `0.15`) to track cost for this window. **Submit** creates the entry; add more windows or change settings later via **⚙️ Configure** on the entry.
+3. **Step 1 — Select sensor:** Choose a daily cumulative energy sensor that resets (e.g. `sensor.today_load`). You must select a sensor to continue.
+4. **Step 2 — Add window:** Optionally set a **Friendly name** for the energy source (defaults to the sensor’s name). Enter a **Window name** and set **Start time** and **End time**. Optionally set **Cost per kWh ($)** (e.g. `0.15`, up to 5 decimal places) to track cost for this window. **Submit** creates the entry; add more windows or change settings later via **⚙️ Configure** on the entry.
 
 ### ⚙️ Configure (add, edit, remove windows or change source)
 
@@ -47,13 +47,13 @@ Each integration entry has **one energy source** and can have **many time window
 2. Click **⚙️ Configure** — the **Configure Energy Window Tracker** menu opens:
    - **✚ Add new window** — Add a window (name, start time, end time, optional **Cost per kWh ($)**). Save returns you to the menu.
    - **✏️ Manage windows** — Choose a window from the list, then click **Select**. The edit form opens (name, start, end, optional **Cost per kWh ($)**; optional **❌ Delete?**). Save or delete (with confirmation) then returns to the window list.
-   - **⚡️ Update energy source** — A confirmation explains that changing the source will permanently delete all historical data for the current source; **Continue** opens the form to pick a new sensor and optional **Friendly name**, then **Update** applies the change. Returns to the menu.
+   - **⚡️ Update energy source** — A confirmation explains that changing the source will permanently delete all historical data for the current source. The source name (Friendly name) will be re-used. **Continue** opens the form to pick a new sensor and optional **Friendly name**, then **Update** applies the change. Returns to the menu.
 
 Use **Submit**, **Select**, **Save**, or **Update** as appropriate when done.
 
-## Sensor Attributes
+## Sensors
 
-Each window is a sensor whose **friendly name** is the window name (e.g. "Peak").
+Each window is exposed as a sensor. The **friendly name** is the window name (e.g. "Peak"). Find entity IDs under **Settings → Devices & Services → Entities** (filter by Energy Window Tracker).
 
 | Attribute       | Description                                                                 |
 | --------------- | --------------------------------------------------------------------------- |
@@ -62,7 +62,7 @@ Each window is a sensor whose **friendly name** is the window name (e.g. "Peak")
 | `status`        | Current mode: before_window, during_window, after_window, etc.              |
 | `cost`          | Cost so far in $ (only present if **Cost per kWh ($)** is set for the window). Equals energy (kWh) × cost per kWh. |
 
-Use the cost in templates or dashboards, e.g. `{{ state_attr('sensor.peak_energy', 'cost') }}`.
+Use the cost in templates or dashboards, e.g. `{{ state_attr('sensor.your_window_entity_id', 'cost') }}`.
 
 ## FAQ
 
@@ -73,4 +73,7 @@ The source must be a **daily cumulative total** that resets (e.g. at midnight) �
 The start snapshot is restored from storage, and the end snapshot is taken at the window end time. Your data is preserved.
 
 **How many sources and windows can I have?**  
-Each integration entry has **one energy source** and can have **any number of time windows**. You can create multiple entries that use the same sensor (e.g. different window sets). To add or change windows for an entry, use ⚙️ Configure on that entry.
+Each integration entry has **one energy source** and can have **any number of time windows**. You can create multiple entries that use the same sensor (e.g. different window sets). To add or change windows for an entry, use **⚙️ Configure** on that entry.
+
+**I get "Unknown error" or 400 when adding the integration.**  
+Ensure you select a sensor in Step 1. If the issue persists, restart Home Assistant and try again.

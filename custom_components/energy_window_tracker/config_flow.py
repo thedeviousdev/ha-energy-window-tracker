@@ -163,7 +163,7 @@ def _build_windows_schema(
     schema_dict: dict[Any, Any] = {}
     if default_source_name is not None:
         schema_dict[
-            vol.Optional("source_name", default=default_source_name, description="Energy source name")
+            vol.Optional("source_name", default=default_source_name, description="Friendly name")
         ] = str
     for i in range(num_rows):
         name_lbl, start_lbl, end_lbl, cost_lbl = _window_labels(i)
@@ -605,7 +605,7 @@ def _build_source_entity_schema(source_entity: str, current_source_name: str = "
             vol.Optional(
                 CONF_NAME,
                 default=current_source_name or "",
-                description="Source name",
+                description="Friendly name",
             ): str,
         }
     )

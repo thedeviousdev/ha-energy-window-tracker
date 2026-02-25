@@ -16,7 +16,7 @@
         "title": "Add window",
         "description": "Name the window and define the start and end times. You can add, edit and delete windows later via the \"configure\" menu.",
         "data": {
-          "source_name": "Energy source name",
+          "source_name": "Friendly name",
           "name": "Window name",
           "start": "Start time",
           "end": "End Time",
@@ -61,7 +61,7 @@
       },
       "source_entity_confirm": {
         "title": "Update energy source",
-        "description": "Changing the energy source will **permanently delete all historical data** for the current source. You can re-use the same source name for the new source. Continue to choose the new entity.",
+        "description": "Changing the source will **permanently delete all historical data** for the current source. The source name will be re-used.",
         "submit": "Continue"
       },
       "source_entity": {
@@ -69,7 +69,7 @@
         "description": "",
         "data": {
           "source_entity": "Energy source",
-          "name": "Source name"
+          "name": "Friendly name"
         },
         "submit": "Update"
       },

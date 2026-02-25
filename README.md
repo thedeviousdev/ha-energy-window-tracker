@@ -39,7 +39,7 @@ Each integration entry has **one energy source** and can have **many time window
 1. Go to **Settings → Devices & Services → + Add Integration**
 2. Search for **Energy Window Tracker**
 3. **Step 1 — Select sensor:** Choose a daily cumulative energy sensor that resets (e.g. `sensor.today_load`).
-4. **Step 2 — Add window:** Optionally set a **Source name** (defaults to the sensor’s name). Name the window and set start and end times. Optionally set **Cost per kWh ($)** (e.g. `0.15`) to track cost for this window. **Submit** creates the entry; add more windows or change settings later via **⚙️ Configure** on the entry.
+4. **Step 2 — Add window:** Optionally set a **Friendly name** (defaults to the sensor’s name). Name the window and set start and end times. Optionally set **Cost per kWh ($)** (e.g. `0.15`) to track cost for this window. **Submit** creates the entry; add more windows or change settings later via **⚙️ Configure** on the entry.
 
 ### ⚙️ Configure (add, edit, remove windows or change source)
 
@@ -47,7 +47,7 @@ Each integration entry has **one energy source** and can have **many time window
 2. Click **⚙️ Configure** — the **Configure Energy Window Tracker** menu opens:
    - **✚ Add new window** — Add a window (name, start time, end time, optional **Cost per kWh ($)**). Save returns you to the menu.
    - **✏️ Manage windows** — Choose a window from the list, then click **Select**. The edit form opens (name, start, end, optional **Cost per kWh ($)**; optional **❌ Delete?**). Save or delete (with confirmation) then returns to the window list.
-   - **⚡️ Update energy source** — A confirmation explains that changing the source will permanently delete all historical data for the current source; **Continue** opens the form to pick a new sensor and optional **Source name**, then **Update** applies the change. Returns to the menu.
+   - **⚡️ Update energy source** — A confirmation explains that changing the source will permanently delete all historical data for the current source; **Continue** opens the form to pick a new sensor and optional **Friendly name**, then **Update** applies the change. Returns to the menu.
 
 Use **Submit**, **Select**, **Save**, or **Update** as appropriate when done.
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.7](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v1.14.6...v1.14.7) (2026-02-25)
+
+
+### Bug Fixes
+
+* friendly names ([#86](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/86)) ([025e702](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/025e702f5fc5b318f8d5d3d77e649acb3c893b51))
+
 ## [1.14.6](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v1.14.5...v1.14.6) (2026-02-25)
 
 

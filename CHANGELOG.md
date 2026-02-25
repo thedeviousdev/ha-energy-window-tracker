@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.8](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v1.14.7...v1.14.8) (2026-02-25)
+
+
+### Bug Fixes
+
+* rename source name to friendly name ([#90](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/90)) ([7090ce5](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/7090ce581b3632b202efd99d0fc70e5989efe00d))
+
 ## [1.14.7](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v1.14.6...v1.14.7) (2026-02-25)
 
 

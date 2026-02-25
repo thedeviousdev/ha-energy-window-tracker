@@ -26,8 +26,10 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ATTR_COST,
     ATTR_SOURCE_ENTITY,
     ATTR_STATUS,
+    CONF_COST_PER_KWH,
     CONF_NAME,
     CONF_SOURCES,
     CONF_WINDOWS,
@@ -53,6 +55,7 @@ class WindowConfig:
     end_m: int
     name: str
     index: int
+    cost_per_kwh: float = 0.0
 
 
 @dataclass
@@ -82,6 +85,12 @@ def _parse_windows(config: dict[str, Any]) -> list[WindowConfig]:
         start_h, start_m = _parse_hhmm(p.get(CONF_WINDOW_START) or "11:00")
         end_h, end_m = _parse_hhmm(p.get(CONF_WINDOW_END) or "14:00")
         name = p.get(CONF_WINDOW_NAME) or f"Window {i + 1}"
+        cost_per_kwh = 0.0
+        if CONF_COST_PER_KWH in p and p[CONF_COST_PER_KWH] is not None:
+            try:
+                cost_per_kwh = max(0.0, float(p[CONF_COST_PER_KWH]))
+            except (TypeError, ValueError):
+                pass
         windows.append(
             WindowConfig(
                 start_h=start_h,
@@ -90,6 +99,7 @@ def _parse_windows(config: dict[str, Any]) -> list[WindowConfig]:
                 end_m=end_m,
                 name=name,
                 index=i,
+                cost_per_kwh=cost_per_kwh,
             )
         )
     return windows
@@ -477,12 +487,19 @@ class WindowEnergySensor(RestoreSensor):
             if self._data.take_late_start_snapshot(self._window.index):
                 value, status = self._data.get_window_value(self._window)
         self._attr_native_value = value
-        self._attr_extra_state_attributes = {
+        attrs: dict[str, Any] = {
             ATTR_SOURCE_ENTITY: self._data._source_entity,
             ATTR_STATUS: status,
             "start": _time_str(self._window.start_h, self._window.start_m),
             "end": _time_str(self._window.end_h, self._window.end_m),
         }
+        if self._window.cost_per_kwh > 0 and value is not None:
+            try:
+                cost = round(float(value) * self._window.cost_per_kwh, 2)
+                attrs[ATTR_COST] = cost
+            except (TypeError, ValueError):
+                pass
+        self._attr_extra_state_attributes = attrs
         self._last_source_value = self._data.get_source_value()
         self._last_status = status
 

@@ -14,7 +14,8 @@
           "source_name": "Energy source name",
           "name": "Window name",
           "start": "Start time",
-          "end": "End Time"
+          "end": "End Time",
+          "cost_per_kwh": "Cost per kWh ($)"
         }
       }
     },
@@ -72,7 +73,8 @@
         "data": {
           "name": "Window name",
           "start": "Start time",
-          "end": "End time"
+          "end": "End time",
+          "cost_per_kwh": "Cost per kWh ($)"
         },
         "submit": "Save"
       },
@@ -83,6 +85,7 @@
           "name": "Window name",
           "start": "Start time",
           "end": "End time",
+          "cost_per_kwh": "Cost per kWh ($)",
           "delete_this_window": "❌ Delete?"
         },
         "submit": "Save"

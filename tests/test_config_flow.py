@@ -6,6 +6,8 @@ https://developers.home-assistant.io/docs/development_testing/
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.core import HomeAssistant
@@ -145,7 +147,7 @@ async def test_options_flow_init_shows_menu(
 async def test_options_flow_update_source_entity_form(
     hass: HomeAssistant, mock_config_entry: config_entries.ConfigEntry
 ) -> None:
-    """Test options flow: choose Update energy source -> form (with or without prior confirm step)."""
+    """Test options flow: choose Update energy source -> form with checkbox (no confirm step)."""
     entry = mock_config_entry
     opts_result = await hass.config_entries.options.async_init(entry.entry_id)
     assert opts_result["type"] is data_entry_flow.FlowResultType.MENU
@@ -155,13 +157,77 @@ async def test_options_flow_update_source_entity_form(
         {"next_step_id": "source_entity"},
     )
     assert result["type"] is data_entry_flow.FlowResultType.FORM
-    # Some flows show a confirm step first; if so, submit to reach the source_entity form
-    if result["step_id"] == "source_entity_confirm":
-        result = await hass.config_entries.options.async_configure(result["flow_id"], {})
-        assert result["type"] is data_entry_flow.FlowResultType.FORM
     assert result["step_id"] == "source_entity"
     schema = result.get("data_schema")
     assert schema is not None
     schema_keys = {k for k in schema.schema}
     assert CONF_SOURCE_ENTITY in schema_keys
     assert CONF_NAME in schema_keys
+    assert "remove_previous_entities" in schema_keys
+
+
+@pytest.mark.asyncio
+async def test_options_flow_update_source_entity_submit_remove_previous(
+    hass: HomeAssistant, mock_config_entry: config_entries.ConfigEntry
+) -> None:
+    """Test options flow: submit Update energy source with remove_previous_entities True."""
+    hass.states.async_set("sensor.today_load", "0")
+    hass.states.async_set("sensor.today_import", "0")
+    entry = mock_config_entry
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ):
+        opts_result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            opts_result["flow_id"],
+            {"next_step_id": "source_entity"},
+        )
+        assert result["step_id"] == "source_entity"
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                CONF_SOURCE_ENTITY: "sensor.today_import",
+                CONF_NAME: "Import",
+                "remove_previous_entities": True,
+            },
+        )
+    assert result["type"] is data_entry_flow.FlowResultType.MENU
+    entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert entry
+    sources = entry.options.get(CONF_SOURCES) or entry.data.get(CONF_SOURCES) or []
+    assert sources[0][CONF_SOURCE_ENTITY] == "sensor.today_import"
+
+
+@pytest.mark.asyncio
+async def test_options_flow_update_source_entity_submit_retain_previous(
+    hass: HomeAssistant, mock_config_entry: config_entries.ConfigEntry
+) -> None:
+    """Test options flow: submit Update energy source with remove_previous_entities False."""
+    hass.states.async_set("sensor.today_load", "0")
+    hass.states.async_set("sensor.today_import", "0")
+    entry = mock_config_entry
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ):
+        opts_result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            opts_result["flow_id"],
+            {"next_step_id": "source_entity"},
+        )
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                CONF_SOURCE_ENTITY: "sensor.today_import",
+                CONF_NAME: "Import",
+                "remove_previous_entities": False,
+            },
+        )
+    assert result["type"] is data_entry_flow.FlowResultType.MENU
+    entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert entry
+    sources = entry.options.get(CONF_SOURCES) or entry.data.get(CONF_SOURCES) or []
+    assert sources[0][CONF_SOURCE_ENTITY] == "sensor.today_import"

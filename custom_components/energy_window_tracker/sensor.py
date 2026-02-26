@@ -362,7 +362,12 @@ async def async_setup_entry(
             )
             all_sensors.append(sensor)
 
-    # Remove entities for windows that no longer exist (e.g. after user deleted a window)
+    # Remove entities for windows that no longer exist (or old source after change)
+    # unless they are in the retain list (user chose not to remove when changing source).
+    retain_ids = set(entry.options.get("_retain_entity_unique_ids") or [])
+    if retain_ids:
+        new_options = {k: v for k, v in (entry.options or {}).items() if k != "_retain_entity_unique_ids"}
+        hass.config_entries.async_update_entry(entry, options=new_options or None)
     current_unique_ids = {sensor.unique_id for sensor in all_sensors}
     registry = er.async_get(hass)
     for entity_entry in registry.entities.get_entries_for_config_entry_id(
@@ -370,7 +375,9 @@ async def async_setup_entry(
     ):
         if (
             entity_entry.domain == "sensor"
+            and entity_entry.platform == DOMAIN
             and entity_entry.unique_id not in current_unique_ids
+            and entity_entry.unique_id not in retain_ids
         ):
             _LOGGER.debug(
                 "Removing orphaned sensor entity %s (unique_id: %s)",
@@ -419,9 +426,8 @@ class WindowEnergySensor(RestoreSensor):
         # Name used at registration so entity_id includes source (e.g. sensor.sensor_today_load_peak).
         # Friendly name is set to window name only in async_added_to_hass.
         self._attr_name = f"{source_slug} {window.name}" if source_slug else window.name
-        # Stable unique_id by entry + source slot + window index so entity_id is preserved
-        # when the user updates the energy source (same entry, same slot, same window).
-        self._attr_unique_id = f"{entry_id}_source_{source_index}_{window_index}"
+        # unique_id includes source_slug so entity_id changes when the user updates the energy source.
+        self._attr_unique_id = f"{entry_id}_{source_slug}_{window_index}"
         self._last_source_value: float | None = None
         self._last_status: str | None = None
 

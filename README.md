@@ -28,7 +28,7 @@ Snapshots of the current energy consumption are taken at the **start** and **end
 
 ## Updating
 
-After updating the integration (via HACS or by replacing files), **restart Home Assistant** for the new version to load.
+After updating the integration (via HACS or by replacing files), **restart Home Assistant** for the new version to load. Some older versions are [yanked](YANKED.md).
 
 ## Configuration
 
@@ -47,13 +47,13 @@ Each integration entry has **one energy source** and can have **many time window
 2. Click **⚙️ Configure** — the **Configure Energy Window Tracker** menu opens:
    - **✚ Add new window** — Add a window (name, start time, end time, optional **Cost per kWh ($)**). Save returns you to the menu.
    - **✏️ Manage windows** — Choose a window from the list, then click **Select**. The edit form opens (name, start, end, optional **Cost per kWh ($)**; optional **❌ Delete?**). Save or delete (with confirmation) then returns to the window list.
-   - **⚡️ Update energy source** — A confirmation explains that changing the source will permanently delete all historical data for the current source. The source name (Friendly name) will be re-used. **Continue** opens the form to pick a new sensor and optional **Friendly name**, then **Update** applies the change. Returns to the menu.
+   - **⚡️ Update energy source** — Opens a form to pick a new sensor and optional **Friendly name**. A checkbox **"Remove the previous associated entries? Otherwise you will need to manually delete these later."** (value **❌ Yes**) controls what happens to the old sensor entities: if checked, they are removed and old snapshot data is cleared; if unchecked, they are kept and you can delete them manually later. Entity IDs are based on the current source (e.g. `sensor.sensor_today_import_peak` after switching to `sensor.today_import`), so changing the source creates new entities with new IDs. **Update** applies the change and returns to the menu.
 
 Use **Submit**, **Select**, **Save**, or **Update** as appropriate when done.
 
 ## Sensors
 
-Each window is exposed as a sensor. The **friendly name** is the window name (e.g. "Peak"). To find entity IDs: open **Settings → Devices & Services → Energy Window Tracker**, then open your device/entry and use the **Entities** tab; or go to **Settings → Devices & Services → Entities** and filter by the integration.
+Each window is exposed as a sensor. The **friendly name** is the window name (e.g. "Peak"). Entity IDs include the current energy source (e.g. `sensor.sensor_today_load_peak` or `sensor.sensor_today_import_peak`), so if you change the source via **⚡️ Update energy source**, new entities are created with new IDs. To find entity IDs: open **Settings → Devices & Services → Energy Window Tracker**, then open your device/entry and use the **Entities** tab; or go to **Settings → Devices & Services → Entities** and filter by the integration.
 
 | Attribute       | Description                                                                 |
 | --------------- | --------------------------------------------------------------------------- |

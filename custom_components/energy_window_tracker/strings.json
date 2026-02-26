@@ -55,7 +55,14 @@
       "source_entity": {
         "title": "Update energy source",
         "description": "",
-        "data": { "source_entity": "Energy source", "name": "Friendly name" },
+        "data": {
+          "source_entity": "Energy source",
+          "name": "Friendly name",
+          "remove_previous_entities": "❌ Yes"
+        },
+        "data_description": {
+          "remove_previous_entities": "Remove the previous associated entries? Otherwise you will need to manually delete these later."
+        },
         "submit": "Update"
       },
       "source_entity_updated": {

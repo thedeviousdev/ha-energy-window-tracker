@@ -30,7 +30,7 @@
     "error": {
       "window_start_after_end": "Start time must be earlier than end time.",
       "at_least_one_window": "At least one window is required (start time before end time).",
-      "source_already_in_use": "Sensor already in use, please edit **{entry_title}**."
+      "source_already_in_use": "Sensor already in use, please edit {entry_title}."
     },
     "abort": {
       "already_configured": "This configuration is already set up."
@@ -108,7 +108,7 @@
       "window_start_after_end": "Start time must be earlier than end time.",
       "at_least_one_window": "At least one window is required.",
       "source_entity_required": "Select an energy sensor.",
-      "source_already_in_use": "Sensor already in use, please edit **{entry_title}**.",
+      "source_already_in_use": "Sensor already in use, please edit {entry_title}.",
       "remove_previous_but_source_unchanged": "Same energy source selected. To delete current windows, please do it via the \"Manage windows\" menu."
     },
     "abort": {

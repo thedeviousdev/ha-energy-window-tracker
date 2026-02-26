@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.3.0](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.2.0...v2.3.0) (2026-02-26)
+
+
+### Features
+
+* enforce one sensor per config entry ([#113](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/113)) ([2249715](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/22497151968f4830449e17b7c5d7f77fcde56f7c))
+* translations for defaults and dynamic window row labels ([#115](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/115)) ([d5165ea](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/d5165ea5c79e0f9391efaf37747b5a1aeb1e9fc4))
+
 ## [2.2.0](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.1.0...v2.2.0) (2026-02-26)
 
 

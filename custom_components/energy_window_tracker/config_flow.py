@@ -7,21 +7,21 @@ import re
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.core import callback
-from homeassistant.helpers import entity_registry as er, selector
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import selector
 from homeassistant.helpers.storage import Store
 
 from .const import (
     CONF_COST_PER_KWH,
     CONF_NAME,
+    CONF_SOURCE_ENTITY,
     CONF_SOURCES,
-    CONF_WINDOWS,
     CONF_WINDOW_END,
     CONF_WINDOW_NAME,
     CONF_WINDOW_START,
-    CONF_SOURCE_ENTITY,
+    CONF_WINDOWS,
     DEFAULT_NAME,
     DEFAULT_SOURCE_ENTITY,
     DEFAULT_WINDOW_END,
@@ -482,8 +482,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Add a window (config flow, pending entry)."""
-        src = self._get_pending_source()
-        source_entity = str(src.get(CONF_SOURCE_ENTITY) or "")
+        self._get_pending_source()  # validate we have a pending source
         if user_input is not None and "start" in user_input:
             start, end = _get_start_end_from_input(user_input)
             if start >= end:
@@ -791,10 +790,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Show Configure Energy Window Tracker menu."""
-        src = self._get_current_source()
-        source_entity = str(src.get(CONF_SOURCE_ENTITY) or DEFAULT_SOURCE_ENTITY)
-        windows = _normalize_windows_for_schema(src.get(CONF_WINDOWS) or [])
-
+        self._get_current_source()
         menu_options = _build_init_menu_options()
         return self._async_show_menu(
             step_id="init",

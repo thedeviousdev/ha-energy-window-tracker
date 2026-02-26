@@ -64,6 +64,10 @@ Each window is exposed as a sensor. The **friendly name** is the window name (e.
 
 Use the cost in templates or dashboards, e.g. `{{ state_attr('sensor.your_window_entity_id', 'cost') }}`.
 
+## Contributing
+
+To run tests, lint, and set up the GitHub Actions pipeline, see **[CONTRIBUTING.md](CONTRIBUTING.md)**.
+
 ## FAQ
 
 **What kind of energy sensor do I need?**  

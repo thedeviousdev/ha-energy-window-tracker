@@ -144,6 +144,11 @@ class WindowData:
         try:
             return float(state.state)
         except (ValueError, TypeError):
+            _LOGGER.debug(
+                "get_source_value: %s state not numeric: %r",
+                self._source_entity,
+                state.state if state else None,
+            )
             return None
 
     def get_window_value(self, window: WindowConfig) -> tuple[float | None, str]:
@@ -214,6 +219,7 @@ class WindowData:
         if stored:
             self._snapshot_date = stored.get("snapshot_date")
             snapshots_data = stored.get("windows") or {}
+            loaded = 0
             for w in self._windows:
                 if str(w.index) in snapshots_data:
                     sd = snapshots_data[str(w.index)]
@@ -221,6 +227,10 @@ class WindowData:
                         snapshot_start=sd.get("snapshot_start"),
                         snapshot_end=sd.get("snapshot_end"),
                     )
+                    loaded += 1
+            _LOGGER.debug("load: %s snapshot_date=%s loaded %s window(s)", self._source_entity, self._snapshot_date, loaded)
+        else:
+            _LOGGER.debug("load: %s no stored data", self._source_entity)
 
     async def save(self) -> None:
         """Persist snapshots to storage."""
@@ -234,6 +244,7 @@ class WindowData:
         await self._store.async_save(
             {"windows": snapshots_data, "snapshot_date": self._snapshot_date}
         )
+        _LOGGER.debug("save: %s snapshot_date=%s %s window(s)", self._source_entity, self._snapshot_date, len(snapshots_data))
 
     def _handle_window_start(self, window: WindowConfig, now: datetime) -> None:
         """Snapshot at window start."""
@@ -264,6 +275,7 @@ class WindowData:
 
     def _handle_midnight(self, now: datetime) -> None:
         """Reset snapshots at midnight."""
+        _LOGGER.debug("_handle_midnight: resetting snapshots for %s", self._source_entity)
         self._snapshots = {
             w.index: WindowSnapshots(snapshot_start=None, snapshot_end=None)
             for w in self._windows
@@ -522,8 +534,8 @@ class WindowEnergySensor(RestoreSensor):
             try:
                 cost = round(float(value) * self._window.cost_per_kwh, 2)
                 attrs[ATTR_COST] = cost
-            except (TypeError, ValueError):
-                pass
+            except (TypeError, ValueError) as e:
+                _LOGGER.debug("_update_value: cost calc failed window=%r value=%r: %s", self._window.name, value, e)
         self._attr_extra_state_attributes = attrs
         self._last_source_value = self._data.get_source_value()
         self._last_status = status

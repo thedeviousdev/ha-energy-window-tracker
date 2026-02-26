@@ -75,6 +75,11 @@ def _time_to_str(t: Any) -> str:
         return "00:00"
 
 
+def _source_slug_str(entity_id: str) -> str:
+    """Stable slug from entity_id for storage/unique_id (matches sensor._source_slug)."""
+    return (entity_id or "").replace(".", "_").replace(":", "_")[:64] or "source_0"
+
+
 def _normalize_entity_selector_value(value: Any) -> str:
     """Normalize EntitySelector result to a single entity_id string (frontend may send list or dict)."""
     if value is None:
@@ -450,8 +455,10 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             next_step = user_input.get("next_step_id")
             if next_step == "done":
+                title = self._pending_entry_title or "Energy Window Tracker"
+                _LOGGER.info("config flow configure_menu: creating entry title=%r", title)
                 return self.async_create_entry(
-                    title=self._pending_entry_title or "Energy Window Tracker",
+                    title=title,
                     data={CONF_SOURCES: self._pending_sources or []},
                 )
             if next_step in ("add_window", "list_windows", "source_entity"):
@@ -473,8 +480,10 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Create entry and finish (from Configure menu Done)."""
+        title = self._pending_entry_title or "Energy Window Tracker"
+        _LOGGER.info("config flow step done: creating entry title=%r", title)
         return self.async_create_entry(
-            title=self._pending_entry_title or "Energy Window Tracker",
+            title=title,
             data={CONF_SOURCES: self._pending_sources or []},
         )
 
@@ -565,6 +574,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_WINDOW_NAME: (user_input.get(CONF_WINDOW_NAME) or "").strip() or None,
                 CONF_WINDOW_START: start,
                 CONF_WINDOW_END: end,
+                CONF_COST_PER_KWH: _parse_cost(user_input.get(CONF_COST_PER_KWH)),
             }
             self._pending_sources[0][CONF_WINDOWS] = windows
             return await self.async_step_configure_menu(None)
@@ -759,6 +769,12 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             self._config_entry,
             options={CONF_SOURCES: [new_source]},
         )
+        _LOGGER.debug(
+            "options flow: saved entry_id=%s source_entity=%r windows=%s",
+            self._config_entry.entry_id,
+            source_entity,
+            [w.get(CONF_WINDOW_NAME) for w in windows],
+        )
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -872,8 +888,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             current_name = src.get(CONF_NAME) or None
             self._save_source(source_entity, new_windows, source_name=current_name)
             # Remove the sensor entity for the deleted window (unique_id includes source slug)
-            old_slug = (source_entity or "").replace(".", "_").replace(":", "_")[:64] or "source_0"
-            unique_id = f"{self._config_entry.entry_id}_{old_slug}_{idx}"
+            unique_id = f"{self._config_entry.entry_id}_{_source_slug_str(source_entity)}_{idx}"
             registry = er.async_get(self.hass)
             if entity_id := registry.async_get_entity_id("sensor", DOMAIN, unique_id):
                 registry.async_remove(entity_id)
@@ -933,15 +948,10 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                         retain_ids.append(entity_entry.unique_id)
                 self._retain_ids_after_save = retain_ids
 
-            old_slug = (
-                source_entity.replace(".", "_").replace(":", "_")[:64]
-                if source_entity
-                else "source_0"
-            )
             store = Store(
                 self.hass,
                 STORAGE_VERSION,
-                f"{STORAGE_KEY}_{self._config_entry.entry_id}_{old_slug}",
+                f"{STORAGE_KEY}_{self._config_entry.entry_id}_{_source_slug_str(source_entity)}",
             )
             await store.async_save({})
 
@@ -961,17 +971,6 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             data_schema=_build_source_entity_schema(
                 source_entity, current_name, include_remove_previous=True
             ),
-        )
-
-    async def async_step_source_entity_updated(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
-        """Show info that the previous entity was not deleted, then return to menu."""
-        if user_input is not None:
-            return await self._async_step_manage_impl(None)
-        return self.async_show_form(
-            step_id="source_entity_updated",
-            data_schema=vol.Schema({}),
         )
 
     async def async_step_add_window(

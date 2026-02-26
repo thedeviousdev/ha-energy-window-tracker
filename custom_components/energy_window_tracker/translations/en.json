@@ -77,11 +77,6 @@
         },
         "submit": "Update"
       },
-      "source_entity_updated": {
-        "title": "Source entity updated",
-        "description": "The previous entity was not deleted so that historical data can be preserved. If you do not want it anymore, you can manually delete it from Settings → Devices & Services → Entities.",
-        "submit": "Continue"
-      },
       "confirm_delete": {
         "title": "Delete window",
         "description": "Are you sure you want to delete **{window_name}**? This cannot be undone."

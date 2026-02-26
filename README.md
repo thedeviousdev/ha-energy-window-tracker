@@ -39,7 +39,7 @@ Each integration entry has **one energy source** and can have **many time window
 1. Go to **Settings → Devices & Services → + Add Integration**
 2. Search for **Energy Window Tracker**
 3. **Step 1 — Select sensor:** Choose a daily cumulative energy sensor that resets (e.g. `sensor.today_load`). You must select a sensor to continue.
-4. **Step 2 — Add window:** Optionally set a **Friendly name** for the energy source (defaults to the sensor’s name). Enter a **Window name** and set **Start time** and **End time**. Optionally set **Cost per kWh ($)** (e.g. `0.15`, up to 5 decimal places) to track cost for this window. **Submit** creates the entry; add more windows or change settings later via **⚙️ Configure** on the entry.
+4. **Step 2 — Add window:** Optionally set a **Friendly name** for the energy source (defaults to the sensor’s name). Enter a **Window name** and set **Start time** and **End time**. Optionally set **Cost per kWh ($)** (e.g. `0.15`, up to 3 decimal places) to track cost for this window. **Submit** creates the entry; add more windows or change settings later via **⚙️ Configure** on the entry.
 
 ### ⚙️ Configure (add, edit, remove windows or change source)
 

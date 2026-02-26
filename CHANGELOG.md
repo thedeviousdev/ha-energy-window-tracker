@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.0.6...v2.1.0) (2026-02-26)
+
+
+### Features
+
+* add testing suite, CONTRIBUTING, CI, and pre-commit ([#107](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/107)) ([b1f5589](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/b1f5589278b0a57f02e8cd8d07aad8d05302b5d6))
+
 ## [2.0.6](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.0.5...v2.0.6) (2026-02-26)
 
 

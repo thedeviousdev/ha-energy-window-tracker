@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.2](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.1...v2.3.2) (2026-02-26)
+
+
+### Bug Fixes
+
+* **options:** validate remove_previous when source unchanged ([#132](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/132)) ([e05887a](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/e05887a4f5b5c38b6c75f3605a307b00245ad6d4))
+
 ## [2.3.1](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.0...v2.3.1) (2026-02-26)
 
 

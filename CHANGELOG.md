@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.4](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.0.3...v2.0.4) (2026-02-26)
+
+
+### Bug Fixes
+
+* **config:** entity selector normalization + logging for Unknown error ([#101](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/101)) ([89a805e](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/89a805e318b8c3cae9db615bb59f79afc524d348))
+
 ## [2.0.3](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.0.2...v2.0.3) (2026-02-26)
 
 

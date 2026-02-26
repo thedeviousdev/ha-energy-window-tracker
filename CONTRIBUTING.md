@@ -14,19 +14,21 @@ The test suite follows the [Home Assistant development testing](https://develope
 From the repo root, run tests and lint; both must pass before submitting.
 
 ```bash
-pip install -r requirements_test.txt
+python3 -m pip install -r requirements_test.txt
 pytest tests/ -v
 ruff check custom_components/ tests/
 ```
 
-### Pre-commit hook (recommended)
+If `pip` or `pip3` is on your PATH, you can use that instead of `python3 -m pip`. Using a virtual environment is recommended: `python3 -m venv .venv` then `source .venv/bin/activate` (or `.venv\Scripts\activate` on Windows).
 
-You can run tests and the linter automatically before each commit using [pre-commit](https://pre-commit.com/).
+### Pre-commit hook (required)
+
+You must install the [pre-commit](https://pre-commit.com/) hook so that tests and the linter run automatically before each commit.
 
 1. Install dependencies and the hook:
 
    ```bash
-   pip install -r requirements_test.txt
+   python3 -m pip install -r requirements_test.txt
    pre-commit install
    ```
 
@@ -38,7 +40,7 @@ You can run tests and the linter automatically before each commit using [pre-com
    pre-commit run --all-files
    ```
 
-To skip the hook once (use sparingly): `git commit --no-verify`.
+To skip the hook once (use sparingly and only when necessary): `git commit --no-verify`.
 
 Useful options (as in the [HA testing docs](https://developers.home-assistant.io/docs/development_testing/#running-a-limited-test-suite)):
 
@@ -55,10 +57,9 @@ pytest tests/ -v --cov=custom_components.energy_window_tracker --cov-report=term
 
 ### Linting
 
-Run Ruff before committing or opening a PR. CI will fail if lint does not pass.
+Run Ruff before committing or opening a PR. CI will fail if lint does not pass. Ruff is already included in `requirements_test.txt`, so no separate install is needed.
 
 ```bash
-pip install ruff
 ruff check custom_components/ tests/
 ```
 

@@ -14,8 +14,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
-from custom_components.energy_window_tracker.const import DOMAIN
-
 
 def _get_tracker_sensors(hass: HomeAssistant, entry_id: str) -> list:
     """Return entity entries for our config entry (sensor domain)."""

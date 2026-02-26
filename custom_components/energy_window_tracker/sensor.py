@@ -10,7 +10,6 @@ from typing import Any
 from homeassistant.components.sensor import (
     RestoreSensor,
     SensorDeviceClass,
-    SensorEntity,
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -31,12 +30,12 @@ from .const import (
     ATTR_STATUS,
     CONF_COST_PER_KWH,
     CONF_NAME,
+    CONF_SOURCE_ENTITY,
     CONF_SOURCES,
-    CONF_WINDOWS,
     CONF_WINDOW_END,
     CONF_WINDOW_NAME,
     CONF_WINDOW_START,
-    CONF_SOURCE_ENTITY,
+    CONF_WINDOWS,
     DOMAIN,
     STORAGE_KEY,
     STORAGE_VERSION,

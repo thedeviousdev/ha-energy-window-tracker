@@ -126,16 +126,13 @@ def _normalize_windows_for_schema(raw: Any) -> list[dict[str, Any]]:
 
 
 def _build_step_user_schema() -> vol.Schema:
-    """Build step 1 schema: energy source only. Accept string or list (EntitySelector format)."""
+    """Build step 1 schema: energy source only."""
     return vol.Schema(
         {
             vol.Required(
                 CONF_SOURCE_ENTITY,
                 default=DEFAULT_SOURCE_ENTITY,
-            ): vol.Any(
-                selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
-                str,
-            ),
+            ): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
         }
     )
 
@@ -608,16 +605,13 @@ def _build_select_window_schema(windows: list[dict[str, Any]]) -> vol.Schema:
 
 
 def _build_source_entity_schema(source_entity: str, current_source_name: str = "") -> vol.Schema:
-    """Build schema for changing the source entity and optional source name. Accept string or list."""
+    """Build schema for changing the source entity and optional source name."""
     return vol.Schema(
         {
             vol.Required(
                 CONF_SOURCE_ENTITY,
                 default=source_entity or DEFAULT_SOURCE_ENTITY,
-            ): vol.Any(
-                selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
-                str,
-            ),
+            ): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
             vol.Optional(
                 CONF_NAME,
                 default=current_source_name or "",

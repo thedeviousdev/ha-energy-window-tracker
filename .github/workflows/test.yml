@@ -7,7 +7,7 @@ on:
   push:
     branches: [main, master, 'release-please--branches--main']
   pull_request:
-    branches: [main, master]
+    types: [opened, synchronize, reopened]
 
 jobs:
   test:

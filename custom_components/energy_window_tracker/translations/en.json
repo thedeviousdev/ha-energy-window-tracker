@@ -22,6 +22,12 @@
           "end": "End Time",
           "cost_per_kwh": "Cost per kWh ($)"
         },
+        "row_templates": {
+          "name": "Window {n} name",
+          "start": "Window {n} start time",
+          "end": "Window {n} end time",
+          "cost_per_kwh": "Window {n} cost per kWh ($)"
+        },
         "data_description": {
           "name": "Label for this window (e.g. Morning peak)."
         }
@@ -34,6 +40,11 @@
     },
     "abort": {
       "already_configured": "This configuration is already set up."
+    },
+    "defaults": {
+      "entry_title": "Energy Window Tracker",
+      "window_name": "Window",
+      "window_fallback": "Window {n}"
     }
   },
   "options": {
@@ -51,7 +62,8 @@
         "title": "Manage windows",
         "description": "",
         "data": {
-          "window_index": "Select a window"
+          "window_index": "Select a window",
+          "window_fallback": "Window {n}"
         },
         "submit": "Select"
       },
@@ -66,14 +78,11 @@
       },
       "source_entity": {
         "title": "Update energy source",
-        "description": "",
+        "description": "❌ Delete the previously associated windows (otherwise they will need to be manually removed)?",
         "data": {
           "source_entity": "Energy source",
           "name": "Friendly name",
-          "remove_previous_entities": "❌ Yes"
-        },
-        "data_description": {
-          "remove_previous_entities": "Remove the previous associated entries? Otherwise you will need to manually delete these later."
+          "remove_previous_entities": "Yes"
         },
         "submit": "Update"
       },

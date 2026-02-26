@@ -16,6 +16,12 @@
           "start": "Start time",
           "end": "End Time",
           "cost_per_kwh": "Cost per kWh ($)"
+        },
+        "row_templates": {
+          "name": "Window {n} name",
+          "start": "Window {n} start time",
+          "end": "Window {n} end time",
+          "cost_per_kwh": "Window {n} cost per kWh ($)"
         }
       }
     },
@@ -24,7 +30,12 @@
       "at_least_one_window": "At least one window is required (start time before end time).",
       "source_already_in_use": "Sensor already in use, please edit **{entry_title}**."
     },
-    "abort": { "already_configured": "This configuration is already set up." }
+    "abort": { "already_configured": "This configuration is already set up." },
+    "defaults": {
+      "entry_title": "Energy Window Tracker",
+      "window_name": "Window",
+      "window_fallback": "Window {n}"
+    }
   },
   "options": {
     "step": {
@@ -40,7 +51,10 @@
       "manage_windows": {
         "title": "Manage windows",
         "description": "",
-        "data": { "window_index": "Select a window" },
+        "data": {
+          "window_index": "Select a window",
+          "window_fallback": "Window {n}"
+        },
         "submit": "Select"
       },
       "manage_windows_empty": {
@@ -54,14 +68,11 @@
       },
       "source_entity": {
         "title": "Update energy source",
-        "description": "",
+        "description": "❌ Delete the previously associated windows (otherwise they will need to be manually removed)?",
         "data": {
           "source_entity": "Energy source",
           "name": "Friendly name",
-          "remove_previous_entities": "❌ Yes"
-        },
-        "data_description": {
-          "remove_previous_entities": "Remove the previous associated entries? Otherwise you will need to manually delete these later."
+          "remove_previous_entities": "Yes"
         },
         "submit": "Update"
       },

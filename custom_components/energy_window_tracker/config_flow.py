@@ -12,6 +12,7 @@ from homeassistant.core import callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
 from homeassistant.helpers.storage import Store
+from homeassistant.helpers.translation import async_get_translations
 
 from .const import (
     CONF_COST_PER_KWH,
@@ -22,11 +23,17 @@ from .const import (
     CONF_WINDOW_NAME,
     CONF_WINDOW_START,
     CONF_WINDOWS,
-    DEFAULT_NAME,
+    DEFAULT_ENTRY_TITLE_KEY,
+    DEFAULT_NAME_KEY,
     DEFAULT_SOURCE_ENTITY,
     DEFAULT_WINDOW_END,
+    DEFAULT_WINDOW_FALLBACK_KEY,
     DEFAULT_WINDOW_START,
     DOMAIN,
+    ROW_TEMPLATE_COST_KEY,
+    ROW_TEMPLATE_END_KEY,
+    ROW_TEMPLATE_NAME_KEY,
+    ROW_TEMPLATE_START_KEY,
     STORAGE_KEY,
     STORAGE_VERSION,
 )
@@ -111,7 +118,9 @@ def _normalize_entity_selector_value(value: Any) -> str:
     return out
 
 
-def _get_entity_friendly_name(hass: Any, entity_id: str) -> str:
+def _get_entity_friendly_name(
+    hass: Any, entity_id: str, default: str | None = None
+) -> str:
     """Get friendly name for an entity, fallback to entity id or default."""
     entity_id = _normalize_entity_selector_value(entity_id) or (entity_id if isinstance(entity_id, str) else "")
     try:
@@ -124,7 +133,7 @@ def _get_entity_friendly_name(hass: Any, entity_id: str) -> str:
             return str(entity_id.split(".")[-1].replace("_", " ").title())[:200]
     except (TypeError, AttributeError, KeyError):
         pass
-    return DEFAULT_NAME
+    return default if default is not None else "Window"
 
 
 def _normalize_windows_for_schema(raw: Any) -> list[dict[str, Any]]:
@@ -164,20 +173,42 @@ def _build_step_user_schema() -> vol.Schema:
     )
 
 
-# Labels for config flow (single window)
-_WINDOW_LABELS_CONFIG = ("Window name", "Start time", "End time", "Cost per kWh ($)")
+async def _get_config_defaults(hass: Any) -> dict[str, str]:
+    """Load config.defaults from translations (entry_title, window_name, window_fallback)."""
+    lang = hass.config.language or "en"
+    try:
+        trans = await async_get_translations(hass, lang, "config", DOMAIN) or {}
+    except Exception:  # noqa: BLE001
+        trans = {}
+    return {
+        "entry_title": trans.get(DEFAULT_ENTRY_TITLE_KEY) or "Energy Window Tracker",
+        "window_name": trans.get(DEFAULT_NAME_KEY) or "Window",
+        "window_fallback": trans.get(DEFAULT_WINDOW_FALLBACK_KEY) or "Window {n}",
+    }
 
 
-def _window_labels(i: int) -> tuple[str, str, str, str]:
-    """Return (name_label, start_label, end_label, cost_label) for window row i (0-based)."""
-    if i == 0:
-        return _WINDOW_LABELS_CONFIG
-    return (
-        f"Window {i + 1} name",
-        f"Window {i + 1} start time",
-        f"Window {i + 1} end time",
-        f"Window {i + 1} cost per kWh ($)",
-    )
+async def _get_window_row_labels(hass: Any, num_rows: int) -> dict[int, tuple[str, str, str, str]]:
+    """Build dynamic row labels from translation templates (Window {n} name, etc.)."""
+    labels: dict[int, tuple[str, str, str, str]] = {}
+    lang = hass.config.language or "en"
+    try:
+        trans = await async_get_translations(hass, lang, "config", DOMAIN) or {}
+    except Exception:  # noqa: BLE001
+        trans = {}
+    # Defaults live in strings.json / translations; only used if key missing (e.g. load error)
+    name_t = trans.get(ROW_TEMPLATE_NAME_KEY) or "Window {n} name"
+    start_t = trans.get(ROW_TEMPLATE_START_KEY) or "Window {n} start time"
+    end_t = trans.get(ROW_TEMPLATE_END_KEY) or "Window {n} end time"
+    cost_t = trans.get(ROW_TEMPLATE_COST_KEY) or "Window {n} cost per kWh ($)"
+    for i in range(num_rows):
+        n = i + 1
+        labels[i] = (
+            name_t.format(n=n),
+            start_t.format(n=n),
+            end_t.format(n=n),
+            cost_t.format(n=n),
+        )
+    return labels
 
 
 def _build_windows_schema(
@@ -187,23 +218,30 @@ def _build_windows_schema(
     num_rows: int = 1,
     default_source_name: str | None = None,
     use_simple_keys: bool = False,
+    row_labels: dict[int, tuple[str, str, str, str]] | None = None,
 ) -> vol.Schema:
-    """Build schema: optional source name, then num_rows window rows. use_simple_keys=True uses name/start/end for row 0."""
+    """Build schema: optional source name, then num_rows window rows. use_simple_keys=True uses name/start/end for row 0.
+    row_labels: optional dict mapping row index -> (name_lbl, start_lbl, end_lbl, cost_lbl) for description= (dynamic rows).
+    """
     existing = existing_windows or []
     if not isinstance(existing, list):
         existing = []
 
     schema_dict: dict[Any, Any] = {}
     if default_source_name is not None:
-        schema_dict[
-            vol.Optional("source_name", default=default_source_name, description="Friendly name")
-        ] = str
+        schema_dict[vol.Optional("source_name", default=default_source_name)] = str
     for i in range(num_rows):
-        name_lbl, start_lbl, end_lbl, cost_lbl = _window_labels(i)
         name_key = "name" if (use_simple_keys and i == 0) else f"w{i}_name"
         start_key = "start" if (use_simple_keys and i == 0) else f"w{i}_start"
         end_key = "end" if (use_simple_keys and i == 0) else f"w{i}_end"
         cost_key = CONF_COST_PER_KWH if (use_simple_keys and i == 0) else f"w{i}_{CONF_COST_PER_KWH}"
+        # Use translated row labels for description when provided (for dynamic rows; row 0 with use_simple_keys uses frontend data)
+        use_desc = row_labels is not None and i in row_labels and not (use_simple_keys and i == 0)
+        name_lbl = row_labels[i][0] if use_desc else None
+        start_lbl = row_labels[i][1] if use_desc else None
+        end_lbl = row_labels[i][2] if use_desc else None
+        cost_lbl = row_labels[i][3] if use_desc else None
+
         if i < len(existing) and isinstance(existing[i], dict):
             ex = existing[i]
             name_val = ex.get(CONF_WINDOW_NAME) or ""
@@ -216,11 +254,7 @@ def _build_windows_schema(
                 except (TypeError, ValueError):
                     pass
             schema_dict[
-                vol.Optional(
-                    name_key,
-                    default=name_val if isinstance(name_val, str) else "",
-                    description=name_lbl,
-                )
+                vol.Optional(name_key, default=name_val if isinstance(name_val, str) else "", description=name_lbl)
             ] = str
             schema_dict[
                 vol.Optional(start_key, default=start_val, description=start_lbl)
@@ -229,11 +263,7 @@ def _build_windows_schema(
                 vol.Optional(end_key, default=end_val, description=end_lbl)
             ] = selector.TimeSelector()
             schema_dict[
-                vol.Optional(
-                    cost_key,
-                    default=cost_val,
-                    description=cost_lbl,
-                )
+                vol.Optional(cost_key, default=cost_val, description=cost_lbl)
             ] = selector.NumberSelector(
                 selector.NumberSelectorConfig(min=0, max=100, step=0.001, mode="box")
             )
@@ -248,11 +278,7 @@ def _build_windows_schema(
                 vol.Optional(end_key, default=DEFAULT_WINDOW_END, description=end_lbl)
             ] = selector.TimeSelector()
             schema_dict[
-                vol.Optional(
-                    cost_key,
-                    default=0,
-                    description=cost_lbl,
-                )
+                vol.Optional(cost_key, default=0, description=cost_lbl)
             ] = selector.NumberSelector(
                 selector.NumberSelectorConfig(min=0, max=100, step=0.001, mode="box")
             )
@@ -353,11 +379,12 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
             existing = _entry_using_source_entity(self.hass, self._source_entity, exclude_entry_id=None)
             if existing is not None:
+                defaults = await _get_config_defaults(self.hass)
                 return self.async_show_form(
                     step_id="user",
                     data_schema=_build_step_user_schema(),
                     errors={"base": "source_already_in_use"},
-                    description_placeholders={"entry_title": existing.title or "Energy Window Tracker"},
+                    description_placeholders={"entry_title": existing.title or defaults["entry_title"]},
                 )
             _LOGGER.info("config flow step user: source_entity=%r, proceeding to windows", self._source_entity)
             try:
@@ -383,10 +410,14 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             "submitted" if user_input is not None else "None (show form)",
             source_entity,
         )
+        num_rows = 1
+        row_labels = await _get_window_row_labels(self.hass, num_rows)
+        defaults = await _get_config_defaults(self.hass)
+        default_name = _get_entity_friendly_name(self.hass, source_entity, defaults["window_name"])
 
         if user_input is not None:
             _LOGGER.debug("config flow step windows: submitted keys=%s", list(user_input.keys()))
-            windows = _collect_windows_from_input(user_input, num_rows=1, use_simple_keys=True)
+            windows = _collect_windows_from_input(user_input, num_rows=num_rows, use_simple_keys=True)
             if not windows:
                 errors["base"] = "at_least_one_window"
                 return self.async_show_form(
@@ -394,9 +425,11 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data_schema=_build_windows_schema(
                         self.hass,
                         source_entity,
-                        _get_window_rows_from_input(user_input, 1, use_simple_keys=True),
-                        default_source_name=user_input.get("source_name") or _get_entity_friendly_name(self.hass, source_entity),
+                        _get_window_rows_from_input(user_input, num_rows, use_simple_keys=True),
+                        num_rows=num_rows,
+                        default_source_name=user_input.get("source_name") or default_name,
                         use_simple_keys=True,
+                        row_labels=row_labels,
                     ),
                     errors=errors,
                 )
@@ -409,15 +442,17 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data_schema=_build_windows_schema(
                         self.hass,
                         source_entity,
-                        _get_window_rows_from_input(user_input, 1, use_simple_keys=True),
-                        default_source_name=user_input.get("source_name") or _get_entity_friendly_name(self.hass, source_entity),
+                        _get_window_rows_from_input(user_input, num_rows, use_simple_keys=True),
+                        num_rows=num_rows,
+                        default_source_name=user_input.get("source_name") or default_name,
                         use_simple_keys=True,
+                        row_labels=row_labels,
                     ),
                     errors=errors,
                 )
-            source_name = (user_input.get("source_name") or "").strip() or _get_entity_friendly_name(self.hass, source_entity)
-            source_name = (source_name or "Energy Window Tracker").strip()[:200]
-            entry_title = source_name or "Energy Window Tracker"
+            source_name = (user_input.get("source_name") or "").strip() or default_name
+            source_name = (source_name or defaults["entry_title"]).strip()[:200]
+            entry_title = source_name or defaults["entry_title"]
             existing = _entry_using_source_entity(self.hass, source_entity, exclude_entry_id=None)
             if existing is not None:
                 return self.async_show_form(
@@ -425,12 +460,14 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data_schema=_build_windows_schema(
                         self.hass,
                         source_entity,
-                        _get_window_rows_from_input(user_input, 1, use_simple_keys=True),
-                        default_source_name=user_input.get("source_name") or _get_entity_friendly_name(self.hass, source_entity),
+                        _get_window_rows_from_input(user_input, num_rows, use_simple_keys=True),
+                        num_rows=num_rows,
+                        default_source_name=user_input.get("source_name") or default_name,
                         use_simple_keys=True,
+                        row_labels=row_labels,
                     ),
                     errors={"base": "source_already_in_use"},
-                    description_placeholders={"entry_title": existing.title or "Energy Window Tracker"},
+                    description_placeholders={"entry_title": existing.title or defaults["entry_title"]},
                 )
             _LOGGER.info(
                 "config flow step windows: creating entry title=%r, source=%r, windows=%s",
@@ -453,13 +490,14 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         try:
-            default_name = _get_entity_friendly_name(self.hass, source_entity)
             _LOGGER.debug("config flow step windows: building form default_source_name=%r", default_name)
             schema = _build_windows_schema(
                 self.hass,
                 source_entity,
+                num_rows=num_rows,
                 default_source_name=default_name,
                 use_simple_keys=True,
+                row_labels=row_labels,
             )
         except Exception as err:
             _LOGGER.exception("config flow step windows: failed to build schema: %s", err)
@@ -477,7 +515,8 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             next_step = user_input.get("next_step_id")
             if next_step == "done":
-                title = self._pending_entry_title or "Energy Window Tracker"
+                defaults = await _get_config_defaults(self.hass)
+                title = self._pending_entry_title or defaults["entry_title"]
                 _LOGGER.info("config flow configure_menu: creating entry title=%r", title)
                 return self.async_create_entry(
                     title=title,
@@ -502,7 +541,8 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Create entry and finish (from Configure menu Done)."""
-        title = self._pending_entry_title or "Energy Window Tracker"
+        defaults = await _get_config_defaults(self.hass)
+        title = self._pending_entry_title or defaults["entry_title"]
         _LOGGER.info("config flow step done: creating entry title=%r", title)
         return self.async_create_entry(
             title=title,
@@ -566,9 +606,10 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             idx = int(raw[0] if isinstance(raw, list) else raw, 10)
             self._edit_index = idx
             return await self.async_step_edit_window(None)
+        defaults = await _get_config_defaults(self.hass)
         return self.async_show_form(
             step_id="list_windows",
-            data_schema=_build_select_window_schema(windows),
+            data_schema=_build_select_window_schema(windows, defaults["window_fallback"]),
         )
 
     async def async_step_edit_window(
@@ -612,15 +653,21 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None and CONF_SOURCE_ENTITY in user_input:
             new_entity = user_input.get(CONF_SOURCE_ENTITY) or ""
             if new_entity and self._pending_sources:
-                name = (user_input.get(CONF_NAME) or "").strip() or _get_entity_friendly_name(self.hass, new_entity)
+                defaults = await _get_config_defaults(self.hass)
+                name = (user_input.get(CONF_NAME) or "").strip() or _get_entity_friendly_name(
+                    self.hass, new_entity, defaults["window_name"]
+                )
                 self._pending_sources[0][CONF_SOURCE_ENTITY] = new_entity
-                self._pending_sources[0][CONF_NAME] = (name or "Energy Window Tracker").strip()[:200]
+                self._pending_sources[0][CONF_NAME] = (name or defaults["entry_title"]).strip()[:200]
                 if self._pending_entry_title:
                     self._pending_entry_title = self._pending_sources[0][CONF_NAME]
             return await self.async_step_configure_menu(None)
         src = self._get_pending_source()
         source_entity = str(src.get(CONF_SOURCE_ENTITY) or DEFAULT_SOURCE_ENTITY)
-        current_name = str(src.get(CONF_NAME) or "") or _get_entity_friendly_name(self.hass, source_entity)
+        defaults = await _get_config_defaults(self.hass)
+        current_name = str(src.get(CONF_NAME) or "") or _get_entity_friendly_name(
+            self.hass, source_entity, defaults["window_name"]
+        )
         return self.async_show_form(
             step_id="source_entity",
             data_schema=_build_source_entity_schema(source_entity, current_name),
@@ -684,23 +731,23 @@ def _build_configure_menu_options_with_done() -> dict[str, str]:
     }
 
 
-def _window_display_name(w: dict[str, Any], index: int) -> str:
+def _window_display_name(w: dict[str, Any], index: int, fallback_template: str) -> str:
     """Display name for a window (for list/dropdown labels)."""
     name = (w.get(CONF_WINDOW_NAME) or "").strip()
-    return name or f"Window {index + 1}"
+    return name or fallback_template.format(n=index + 1)
 
 
-def _build_select_window_schema(windows: list[dict[str, Any]]) -> vol.Schema:
+def _build_select_window_schema(
+    windows: list[dict[str, Any]], fallback_template: str
+) -> vol.Schema:
     """Build schema for 'select a window' form: one dropdown, then user is taken to edit that window."""
     options = [
-        {"value": str(i), "label": _window_display_name(w, i)}
+        {"value": str(i), "label": _window_display_name(w, i, fallback_template)}
         for i, w in enumerate(windows)
     ]
     return vol.Schema(
         {
-            vol.Required(
-                "window_index", description="Select a window"
-            ): selector.SelectSelector(
+            vol.Required("window_index"): selector.SelectSelector(
                 selector.SelectSelectorConfig(options=options),
             ),
         }
@@ -718,20 +765,10 @@ def _build_source_entity_schema(
             CONF_SOURCE_ENTITY,
             default=source_entity or DEFAULT_SOURCE_ENTITY,
         ): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
-        vol.Optional(
-            CONF_NAME,
-            default=current_source_name or "",
-            description="Friendly name",
-        ): str,
+        vol.Optional(CONF_NAME, default=current_source_name or ""): str,
     }
     if include_remove_previous:
-        schema_dict[
-            vol.Optional(
-                "remove_previous_entities",
-                default=False,
-                description="Remove the previous associated entries? Otherwise you will need to manually delete these later.",
-            )
-        ] = bool
+        schema_dict[vol.Optional("remove_previous_entities", default=False)] = bool
     return vol.Schema(schema_dict)
 
 
@@ -758,23 +795,18 @@ def _build_single_window_schema(
         except (TypeError, ValueError):
             pass
     schema_dict: dict[Any, Any] = {
-        vol.Optional(
-            CONF_WINDOW_NAME, default=name_val, description="Window name"
-        ): str,
-        vol.Optional("start", default=start_val, description="Start time"): selector.TimeSelector(),
-        vol.Optional("end", default=end_val, description="End time"): selector.TimeSelector(),
+        vol.Optional(CONF_WINDOW_NAME, default=name_val): str,
+        vol.Optional("start", default=start_val): selector.TimeSelector(),
+        vol.Optional("end", default=end_val): selector.TimeSelector(),
         vol.Optional(
             CONF_COST_PER_KWH,
             default=cost_val,
-            description="Cost per kWh ($)",
         ): selector.NumberSelector(
             selector.NumberSelectorConfig(min=0, max=100, step=0.001, mode="box")
         ),
     }
     if include_delete:
-        schema_dict[
-            vol.Optional("delete_this_window", default=False, description="❌ Delete?")
-        ] = bool
+        schema_dict[vol.Optional("delete_this_window", default=False)] = bool
     return vol.Schema(schema_dict)
 
 
@@ -889,9 +921,10 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             idx = int(raw[0] if isinstance(raw, list) else raw, 10)
             self._edit_index = idx
             return await self.async_step_edit_window(None)
+        defaults = await _get_config_defaults(self.hass)
         return self.async_show_form(
             step_id="manage_windows",
-            data_schema=_build_select_window_schema(windows),
+            data_schema=_build_select_window_schema(windows, defaults["window_fallback"]),
         )
 
     async def async_step_list_windows(
@@ -957,8 +990,9 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         src = self._get_current_source()
         source_entity = str(src.get(CONF_SOURCE_ENTITY) or DEFAULT_SOURCE_ENTITY)
         windows = _normalize_windows_for_schema(src.get(CONF_WINDOWS) or [])
+        defaults = await _get_config_defaults(self.hass)
         current_name = str(src.get(CONF_NAME) or "") or _get_entity_friendly_name(
-            self.hass, source_entity
+            self.hass, source_entity, defaults["window_name"]
         )
 
         if user_input is not None and CONF_SOURCE_ENTITY in user_input:
@@ -983,11 +1017,13 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                     ),
                     errors={"base": "source_already_in_use"},
                     description_placeholders={
-                        "entry_title": existing_entry.title or "Energy Window Tracker"
+                        "entry_title": existing_entry.title or defaults["entry_title"]
                     },
                 )
             custom_name = (user_input.get(CONF_NAME) or "").strip()
-            source_name = custom_name or _get_entity_friendly_name(self.hass, new_entity)
+            source_name = custom_name or _get_entity_friendly_name(
+                self.hass, new_entity, defaults["window_name"]
+            )
             remove_previous = bool(user_input.get("remove_previous_entities"))
 
             if remove_previous:

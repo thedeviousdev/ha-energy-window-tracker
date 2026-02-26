@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.1](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.0...v2.3.1) (2026-02-26)
+
+
+### Bug Fixes
+
+* **options:** update source-entity checkbox label, remove empty descriptions ([#127](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/127)) ([377f56e](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/377f56ebcd9a3719570686adbd318733c0f08e4c))
+
 ## [2.3.0](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.2.0...v2.3.0) (2026-02-26)
 
 

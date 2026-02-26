@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.6](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.0.5...v2.0.6) (2026-02-26)
+
+
+### Bug Fixes
+
+* **config:** storage imports + README review ([#105](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/105)) ([7b756f2](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/7b756f20481213b68b19503b00159b067130e5bf))
+
 ## [2.0.5](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.0.4...v2.0.5) (2026-02-26)
 
 

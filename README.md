@@ -79,8 +79,5 @@ The start snapshot is restored from storage, and the end snapshot is taken at th
 **How many sources and windows can I have?**  
 Each integration entry has **one energy source** and can have **any number of time windows**. You can create multiple entries that use the same sensor (e.g. different window sets). To add or change windows for an entry, use **⚙️ Configure** on that entry.
 
-**I get "Unknown error" or 400 when adding the integration or when updating the energy source.**  
-When adding: ensure you select a sensor in Step 1. Restart Home Assistant and try again. If it still fails, enable debug logging (see below) and check the log for the exact error and traceback.
-
 **How do I get more detail when something fails?**  
 Enable debug logging: **Settings → System → Logging** → set **Logger** to `custom_components.energy_window_tracker` and **Level** to **Debug**, then reproduce the issue. In **Settings → System → Logs** (or your log file), look for entries from `custom_components.energy_window_tracker`; the config flow logs step transitions and entity selector values to help trace errors.

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.0.2...v2.0.3) (2026-02-26)
+
+
+### Bug Fixes
+
+* **config:** revert vol.Any for source_entity to fix 500 on flow load ([#99](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/99)) ([b1c1c37](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/b1c1c37e169c5042587b8c4c6db8a1d2d795d744))
+
 ## [2.0.2](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.0.1...v2.0.2) (2026-02-25)
 
 

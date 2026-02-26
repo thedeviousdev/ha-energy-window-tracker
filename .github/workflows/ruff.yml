@@ -13,18 +13,25 @@ on:
 jobs:
   ruff:
     name: Ruff
-    if: github.head_ref != 'release-please--branches--main'
     runs-on: ubuntu-latest
     steps:
+      - name: Skip for release-please PR
+        if: github.head_ref == 'release-please--branches--main'
+        run: echo "Release PR — check passes without running lint"
+
       - uses: actions/checkout@v4
+        if: github.head_ref != 'release-please--branches--main'
 
       - name: Set up Python
+        if: github.head_ref != 'release-please--branches--main'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install Ruff
+        if: github.head_ref != 'release-please--branches--main'
         run: pip install ruff
 
       - name: Run Ruff
+        if: github.head_ref != 'release-please--branches--main'
         run: ruff check custom_components/ tests/ --output-format=github

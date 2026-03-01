@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.5](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.4...v2.3.5) (2026-03-01)
+
+
+### Features
+
+* brand icon and logo for HA 2026.3 ([#147](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/147)) ([2c9f2ec](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/2c9f2ec5ad0b7596d0403acd583bc3adcbb0f02d))
+
 ## [2.3.4](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.3...v2.3.4) (2026-02-26)
 
 

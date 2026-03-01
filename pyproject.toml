@@ -1,6 +1,6 @@
 [project]
 name = "ha-energy-tracker"
-version = "2.3.4"  # x-release-please-version
+version = "2.3.5"  # x-release-please-version
 description = "Home Assistant custom integration: Energy Window Tracker"
 readme = "README.md"
 requires-python = ">=3.12"

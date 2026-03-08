@@ -204,17 +204,26 @@ async def _get_window_form_labels(
         k = _data_key(step_id, key)
         if k in trans:
             labels[key] = trans[k]
-    start_label = labels.get("start") or "Start time"
-    end_label = labels.get("end") or "End time"
+    # Suffix strings for building; time_range_n template for "Time range #N — Start time" / "End time"
     time_range_n_t = trans.get(_data_key(step_id, "time_range_n")) or "Time range #{n}"
+    start_suffix = trans.get(_data_key(step_id, "start_suffix")) or labels.get("start") or "Start time"
+    end_suffix = trans.get(_data_key(step_id, "end_suffix")) or labels.get("end") or "End time"
     n_r = num_ranges if num_ranges is not None else 1
-    # When multiple ranges, all slots use "Start time" / "End time"; grouping is "Time range #1", "Time range #2", etc.
-    for i in range(1, n_r):
-        labels[f"start_{i}"] = start_label
-        labels[f"end_{i}"] = end_label
+    # Build all start/end labels from time_range_n template: "Time range #N — Start time" / "End time"
     if num_ranges is not None:
         for i in range(num_ranges):
             labels[f"_range_{i}"] = time_range_n_t.format(n=i + 1)
+            heading = time_range_n_t.format(n=i + 1)
+            if i == 0:
+                labels["start"] = f"{heading} — {start_suffix}"
+                labels["end"] = f"{heading} — {end_suffix}"
+            else:
+                labels[f"start_{i}"] = f"{heading} — {start_suffix}"
+                labels[f"end_{i}"] = f"{heading} — {end_suffix}"
+    else:
+        for i in range(1, n_r):
+            labels[f"start_{i}"] = start_suffix
+            labels[f"end_{i}"] = end_suffix
     return labels
 
 
@@ -258,12 +267,9 @@ def _build_single_window_multi_range_schema(
             r = ranges[i] if i < len(ranges) else {}
             s_def = _time_to_str(r.get("start") or DEFAULT_WINDOW_START)
             e_def = _time_to_str(r.get("end") or DEFAULT_WINDOW_END)
-        # Dynamic labels: "Time range #N — Start time" / "End time" from base translations
-        range_heading = labels.get(f"_range_{i}")
-        start_label = labels.get(sk) or "Start time"
-        end_label = labels.get(ek) or "End time"
-        start_desc = f"{range_heading} — {start_label}" if range_heading else start_label
-        end_desc = f"{range_heading} — {end_label}" if range_heading else end_label
+        # Labels built from time_range_n in _get_window_form_labels: "Time range #N — Start time" / "End time"
+        start_desc = labels.get(sk) or labels.get("start") or "Start time"
+        end_desc = labels.get(ek) or labels.get("end") or "End time"
         schema_dict[
             vol.Optional(sk, default=s_def, description=start_desc)
         ] = selector.TimeSelector()
@@ -1075,7 +1081,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             registry = er.async_get(self.hass)
             if entity_id := registry.async_get_entity_id("sensor", DOMAIN, unique_id):
                 registry.async_remove(entity_id)
-            return await self._async_step_manage_windows_impl(None)
+            return self.async_create_entry(title=None, data=self._config_entry.options)
         return self.async_show_form(
             step_id="confirm_delete",
             data_schema=vol.Schema({}),
@@ -1172,7 +1178,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                     self._config_entry, options=opts
                 )
                 del self._retain_ids_after_save
-            return await self._async_step_manage_impl(None)
+            return self.async_create_entry(title=None, data=self._config_entry.options)
 
         return self.async_show_form(
             step_id="source_entity",
@@ -1230,7 +1236,8 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             self._pending_add_ranges = []
             self._pending_add_name = ""
             self._pending_add_cost = 0.0
-            return await self._async_step_manage_impl(None)
+            # Complete flow so options persist to storage; user can re-open options to add more
+            return self.async_create_entry(title=None, data=self._config_entry.options)
 
         schema = _build_single_window_multi_range_schema(
             labels, None, self._pending_add_name, self._pending_add_cost, self._pending_add_ranges,
@@ -1268,7 +1275,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 new_windows = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "").strip() != edit_name]
                 current_name = src.get(CONF_NAME) or None
                 await self._save_source(source_entity, new_windows, source_name=current_name)
-                return await self._async_step_manage_windows_impl(None)
+                return self.async_create_entry(title=None, data=self._config_entry.options)
             num_ranges = max(num_ranges, 1)
             w_name, cost_val, ranges_list = _collect_ranges_from_single_window_form(user_input, num_ranges)
             if not ranges_list:
@@ -1300,7 +1307,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 new_windows.append({CONF_WINDOW_NAME: name, CONF_WINDOW_START: s, CONF_WINDOW_END: e, CONF_COST_PER_KWH: cost_val})
             current_name = src.get(CONF_NAME) or None
             await self._save_source(source_entity, new_windows, source_name=current_name)
-            return await self._async_step_manage_windows_impl(None)
+            return self.async_create_entry(title=None, data=self._config_entry.options)
 
         schema = _build_single_window_multi_range_schema(
             labels, None, edit_name, cost, ranges_data, include_add_another=True, include_delete=True,

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.10](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.9...v2.3.10) (2026-03-08)
+
+
+### Bug Fixes
+
+* **options:** persist on save + dynamic labels from time_range_n ([#157](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/157)) ([f30c38b](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/f30c38b854c6e28733e523225020de74fbb927ec))
+
 ## [2.3.9](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.8...v2.3.9) (2026-03-08)
 
 

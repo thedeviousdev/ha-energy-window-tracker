@@ -17,19 +17,39 @@
         "description": "Name the window and define the start and end times. You can add, edit and delete windows later via the \"configure\" menu.",
         "data": {
           "source_name": "Friendly name",
-          "name": "Window name",
+          "window_name": "Window name",
+          "cost_per_kwh": "Cost per kWh ($)",
           "start": "Start time",
-          "end": "End Time",
-          "cost_per_kwh": "Cost per kWh ($)"
-        },
-        "row_templates": {
-          "name": "Window {n} name",
-          "start": "Window {n} start time",
-          "end": "Window {n} end time",
-          "cost_per_kwh": "Window {n} cost per kWh ($)"
-        },
-        "data_description": {
-          "name": "Label for this window (e.g. Morning peak)."
+          "end": "End time",
+          "start_time_n": "Start time {n}",
+          "end_time_n": "End time {n}",
+          "add_another": "Add another time range"
+        }
+      },
+      "add_window": {
+        "title": "Add new window",
+        "description": "Name the window and define the start and end times.",
+        "data": {
+          "window_name": "Window name",
+          "cost_per_kwh": "Cost per kWh ($)",
+          "start": "Start time",
+          "end": "End time",
+          "start_time_n": "Start time {n}",
+          "end_time_n": "End time {n}",
+          "add_another": "Add another time range"
+        }
+      },
+      "edit_window": {
+        "title": "Edit window",
+        "data": {
+          "window_name": "Window name",
+          "cost_per_kwh": "Cost per kWh ($)",
+          "start": "Start time",
+          "end": "End time",
+          "start_time_n": "Start time {n}",
+          "end_time_n": "End time {n}",
+          "add_another": "Add another time range",
+          "delete_this_window": "❌ Delete?"
         }
       }
     },
@@ -89,22 +109,28 @@
       },
       "add_window": {
         "title": "Add new window",
-        "description": "Name the window and define the start and end times",
+        "description": "Name the window and define the start and end times.",
         "data": {
-          "name": "Window name",
+          "window_name": "Window name",
+          "cost_per_kwh": "Cost per kWh ($)",
           "start": "Start time",
           "end": "End time",
-          "cost_per_kwh": "Cost per kWh ($)"
+          "start_time_n": "Start time {n}",
+          "end_time_n": "End time {n}",
+          "add_another": "Add another time range"
         },
         "submit": "Save"
       },
       "edit_window": {
         "title": "Edit window",
         "data": {
-          "name": "Window name",
+          "window_name": "Window name",
+          "cost_per_kwh": "Cost per kWh ($)",
           "start": "Start time",
           "end": "End time",
-          "cost_per_kwh": "Cost per kWh ($)",
+          "start_time_n": "Start time {n}",
+          "end_time_n": "End time {n}",
+          "add_another": "Add another time range",
           "delete_this_window": "❌ Delete?"
         },
         "submit": "Save"

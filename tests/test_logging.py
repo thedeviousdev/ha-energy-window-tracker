@@ -115,7 +115,8 @@ async def test_config_flow_windows_create_entry_logging(
         result["flow_id"],
         {
             "source_name": "My Energy",
-            "name": "Peak",
+            "window_name": "Peak",
+            "cost_per_kwh": 0,
             "start": "09:00",
             "end": "17:00",
         },

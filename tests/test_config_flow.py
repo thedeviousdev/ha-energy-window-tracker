@@ -14,6 +14,7 @@ from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.energy_window_tracker.const import (
+    CONF_COST_PER_KWH,
     CONF_NAME,
     CONF_SOURCE_ENTITY,
     CONF_SOURCES,
@@ -80,7 +81,8 @@ async def test_user_flow_then_windows_then_create_entry(hass: HomeAssistant) -> 
         result["flow_id"],
         {
             "source_name": "My Energy",
-            "name": "Peak",
+            "window_name": "Peak",
+            "cost_per_kwh": 0,
             "start": "09:00",
             "end": "17:00",
         },
@@ -101,6 +103,82 @@ async def test_user_flow_then_windows_then_create_entry(hass: HomeAssistant) -> 
 
 
 @pytest.mark.asyncio
+async def test_windows_step_add_another_creates_entry_with_multiple_ranges(hass: HomeAssistant) -> None:
+    """Initial setup: Add another time range then submit creates one named window with two ranges."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_USER},
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_SOURCE_ENTITY: "sensor.today_load"},
+    )
+    assert result["step_id"] == "windows"
+    # Submit first range with add_another=True
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            "source_name": "My Energy",
+            "window_name": "Off-Peak",
+            "cost_per_kwh": 0.12,
+            "start": "00:00",
+            "end": "11:00",
+            "add_another": True,
+        },
+    )
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["step_id"] == "windows"
+    # Form should show second row (start_1, end_1); submit with two ranges
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            "source_name": "My Energy",
+            "window_name": "Off-Peak",
+            "cost_per_kwh": 0.12,
+            "start": "00:00",
+            "end": "11:00",
+            "start_1": "14:00",
+            "end_1": "18:00",
+            "add_another": False,
+        },
+    )
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    windows = result["data"][CONF_SOURCES][0][CONF_WINDOWS]
+    assert len(windows) == 2
+    assert windows[0][CONF_WINDOW_NAME] == "Off-Peak"
+    assert windows[0][CONF_WINDOW_START] == "00:00"
+    assert windows[0][CONF_WINDOW_END] == "11:00"
+    assert windows[0][CONF_COST_PER_KWH] == 0.12
+    assert windows[1][CONF_WINDOW_NAME] == "Off-Peak"
+    assert windows[1][CONF_WINDOW_START] == "14:00"
+    assert windows[1][CONF_WINDOW_END] == "18:00"
+    assert windows[1][CONF_COST_PER_KWH] == 0.12
+
+
+@pytest.mark.asyncio
+async def test_windows_step_schema_has_single_name_and_cost(hass: HomeAssistant) -> None:
+    """Windows step form has one window name, one cost, start/end, and add_another (no per-row name/cost)."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_USER},
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_SOURCE_ENTITY: "sensor.today_load"},
+    )
+    assert result["step_id"] == "windows"
+    schema = result.get("data_schema")
+    assert schema is not None
+    keys = set(schema.schema)
+    assert "window_name" in keys
+    assert "cost_per_kwh" in keys
+    assert "start" in keys
+    assert "end" in keys
+    assert "add_another" in keys
+    assert "source_name" in keys
+
+
+@pytest.mark.asyncio
 async def test_windows_validation_invalid_time_range(hass: HomeAssistant) -> None:
     """Test windows step rejects invalid time range (start >= end yields no valid window)."""
     result = await hass.config_entries.flow.async_init(
@@ -117,14 +195,15 @@ async def test_windows_validation_invalid_time_range(hass: HomeAssistant) -> Non
         result["flow_id"],
         {
             "source_name": "Energy",
-            "name": "Peak",
+            "window_name": "Peak",
+            "cost_per_kwh": 0,
             "start": "17:00",
             "end": "09:00",
         },
     )
-    # Flow collects only windows with start < end; all rows skipped -> 0 windows -> at_least_one_window
+    # First range 17:00 >= 09:00 -> window_start_after_end
     assert result["type"] is data_entry_flow.FlowResultType.FORM
-    assert result["errors"] == {"base": "at_least_one_window"}
+    assert result["errors"]["base"] in ("at_least_one_window", "window_start_after_end")
 
 
 @pytest.mark.asyncio

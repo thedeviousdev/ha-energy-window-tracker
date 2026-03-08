@@ -258,14 +258,17 @@ def _build_single_window_multi_range_schema(
             r = ranges[i] if i < len(ranges) else {}
             s_def = _time_to_str(r.get("start") or DEFAULT_WINDOW_START)
             e_def = _time_to_str(r.get("end") or DEFAULT_WINDOW_END)
-        # Use range grouping + label for start field when we have multiple ranges
+        # Dynamic labels: "Time range #N — Start time" / "End time" from base translations
         range_heading = labels.get(f"_range_{i}")
-        start_desc = f"{range_heading} — {labels.get(sk)}" if range_heading else labels.get(sk)
+        start_label = labels.get(sk) or "Start time"
+        end_label = labels.get(ek) or "End time"
+        start_desc = f"{range_heading} — {start_label}" if range_heading else start_label
+        end_desc = f"{range_heading} — {end_label}" if range_heading else end_label
         schema_dict[
             vol.Optional(sk, default=s_def, description=start_desc)
         ] = selector.TimeSelector()
         schema_dict[
-            vol.Optional(ek, default=e_def, description=labels.get(ek))
+            vol.Optional(ek, default=e_def, description=end_desc)
         ] = selector.TimeSelector()
     if include_add_another:
         schema_dict[
@@ -935,9 +938,11 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             CONF_SOURCE_ENTITY: source_entity,
             CONF_WINDOWS: windows,
         }
+        # Merge with existing options so we don't drop other keys (e.g. _retain_entity_unique_ids)
+        new_options = {**(self._config_entry.options or {}), CONF_SOURCES: [new_source]}
         self.hass.config_entries.async_update_entry(
             self._config_entry,
-            options={CONF_SOURCES: [new_source]},
+            options=new_options,
         )
         _LOGGER.debug(
             "options flow: saved entry_id=%s source_entity=%r windows=%s",
@@ -945,10 +950,8 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             source_entity,
             [w.get(CONF_WINDOW_NAME) for w in windows],
         )
-        # Reload so new/edited/deleted windows show up as entities (schedule, don't await, to avoid re-entrancy in tests)
-        self.hass.async_create_task(
-            self.hass.config_entries.async_reload(self._config_entry.entry_id)
-        )
+        # Reload so new/edited/deleted windows show up as entities; await so save is applied before menu
+        await self.hass.config_entries.async_reload(self._config_entry.entry_id)
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

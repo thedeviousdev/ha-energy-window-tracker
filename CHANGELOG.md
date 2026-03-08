@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.8](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.7...v2.3.8) (2026-03-08)
+
+
+### Bug Fixes
+
+* **config_flow:** reload after options save; Time range #n labels; no max_ranges ([#153](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/153)) ([891bb66](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/891bb664ba9d196269419587e7f7b450e201148b))
+
 ## [2.3.7](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.6...v2.3.7) (2026-03-08)
 
 

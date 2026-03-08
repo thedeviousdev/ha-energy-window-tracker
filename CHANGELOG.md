@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.12](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.11...v2.3.12) (2026-03-08)
+
+
+### Bug Fixes
+
+* **options:** stop reloading inside flow so options persist ([#162](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/162)) ([9f52757](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/9f52757a9b342ac3b26d0e5eda9bf552141cc920))
+
 ## [2.3.11](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.10...v2.3.11) (2026-03-08)
 
 

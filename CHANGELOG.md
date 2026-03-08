@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.6](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.5...v2.3.6) (2026-03-08)
+
+
+### Features
+
+* **energy-window-tracker:** multiple same-day ranges per window, add-another in setup ([#149](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/149)) ([361fa3c](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/361fa3cf67c72d123ed1677ab0533546864fd426))
+
 ## [2.3.5](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.4...v2.3.5) (2026-03-01)
 
 

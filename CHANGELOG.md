@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.7](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.6...v2.3.7) (2026-03-08)
+
+
+### Features
+
+* multi-range form fixes, tests, docs, and cleanup ([#151](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/151)) ([b4a872d](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/b4a872d7ad7d464d02f1bf565f58974d17e95a88))
+
 ## [2.3.6](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.5...v2.3.6) (2026-03-08)
 
 

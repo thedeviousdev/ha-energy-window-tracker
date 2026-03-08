@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.13](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.12...v2.3.13) (2026-03-08)
+
+
+### Bug Fixes
+
+* **options:** set result.options in options flow for reliable persistence ([#164](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/164)) ([16e5594](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/16e559429be096860ba273d9bf1b220d36dddd71))
+
 ## [2.3.12](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.11...v2.3.12) (2026-03-08)
 
 

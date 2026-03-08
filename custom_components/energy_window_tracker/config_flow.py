@@ -933,8 +933,10 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         source_entity: str,
         windows: list[dict[str, Any]],
         source_name: str | None = None,
-    ) -> None:
-        """Persist source and windows to config entry, then reload so entities update."""
+    ) -> dict[str, Any]:
+        """Update entry with source and windows, reload, and return options to persist.
+        Caller must pass this dict to async_create_entry so options are written to storage.
+        """
         if source_name is None or not source_name.strip():
             source_name = _get_entity_friendly_name(self.hass, source_entity)
         else:
@@ -956,8 +958,8 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             source_entity,
             [w.get(CONF_WINDOW_NAME) for w in windows],
         )
-        # Reload so new/edited/deleted windows show up as entities; await so save is applied before menu
         await self.hass.config_entries.async_reload(self._config_entry.entry_id)
+        return new_options
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -1075,13 +1077,12 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             new_windows = [w for i, w in enumerate(windows) if i != idx]
             current_name = src.get(CONF_NAME) or None
-            await self._save_source(source_entity, new_windows, source_name=current_name)
-            # Remove the sensor entity for the deleted window (unique_id includes source slug)
+            options_to_persist = await self._save_source(source_entity, new_windows, source_name=current_name)
             unique_id = f"{self._config_entry.entry_id}_{source_slug_from_entity_id(source_entity)}_{idx}"
             registry = er.async_get(self.hass)
             if entity_id := registry.async_get_entity_id("sensor", DOMAIN, unique_id):
                 registry.async_remove(entity_id)
-            return self.async_create_entry(title=None, data=self._config_entry.options)
+            return self.async_create_entry(title=None, data=options_to_persist)
         return self.async_show_form(
             step_id="confirm_delete",
             data_schema=vol.Schema({}),
@@ -1170,15 +1171,11 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             )
             await store.async_save({})
 
-            await self._save_source(new_entity, windows, source_name=source_name)
+            options_to_persist = await self._save_source(new_entity, windows, source_name=source_name)
             if getattr(self, "_retain_ids_after_save", None) is not None:
-                opts = dict(self._config_entry.options or {})
-                opts["_retain_entity_unique_ids"] = self._retain_ids_after_save
-                self.hass.config_entries.async_update_entry(
-                    self._config_entry, options=opts
-                )
+                options_to_persist = {**options_to_persist, "_retain_entity_unique_ids": self._retain_ids_after_save}
                 del self._retain_ids_after_save
-            return self.async_create_entry(title=None, data=self._config_entry.options)
+            return self.async_create_entry(title=None, data=options_to_persist)
 
         return self.async_show_form(
             step_id="source_entity",
@@ -1232,12 +1229,11 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                     CONF_COST_PER_KWH: cost,
                 })
             current_name = src.get(CONF_NAME) or None
-            await self._save_source(source_entity, windows, source_name=current_name)
+            options_to_persist = await self._save_source(source_entity, windows, source_name=current_name)
             self._pending_add_ranges = []
             self._pending_add_name = ""
             self._pending_add_cost = 0.0
-            # Complete flow so options persist to storage; user can re-open options to add more
-            return self.async_create_entry(title=None, data=self._config_entry.options)
+            return self.async_create_entry(title=None, data=options_to_persist)
 
         schema = _build_single_window_multi_range_schema(
             labels, None, self._pending_add_name, self._pending_add_cost, self._pending_add_ranges,
@@ -1274,8 +1270,8 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 self._delete_index = -1
                 new_windows = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "").strip() != edit_name]
                 current_name = src.get(CONF_NAME) or None
-                await self._save_source(source_entity, new_windows, source_name=current_name)
-                return self.async_create_entry(title=None, data=self._config_entry.options)
+                options_to_persist = await self._save_source(source_entity, new_windows, source_name=current_name)
+                return self.async_create_entry(title=None, data=options_to_persist)
             num_ranges = max(num_ranges, 1)
             w_name, cost_val, ranges_list = _collect_ranges_from_single_window_form(user_input, num_ranges)
             if not ranges_list:
@@ -1306,8 +1302,8 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             for s, e in ranges_list:
                 new_windows.append({CONF_WINDOW_NAME: name, CONF_WINDOW_START: s, CONF_WINDOW_END: e, CONF_COST_PER_KWH: cost_val})
             current_name = src.get(CONF_NAME) or None
-            await self._save_source(source_entity, new_windows, source_name=current_name)
-            return self.async_create_entry(title=None, data=self._config_entry.options)
+            options_to_persist = await self._save_source(source_entity, new_windows, source_name=current_name)
+            return self.async_create_entry(title=None, data=options_to_persist)
 
         schema = _build_single_window_multi_range_schema(
             labels, None, edit_name, cost, ranges_data, include_add_another=True, include_delete=True,

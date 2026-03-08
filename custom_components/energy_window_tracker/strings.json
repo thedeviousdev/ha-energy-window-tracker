@@ -18,8 +18,9 @@
           "cost_per_kwh": "Cost per kWh ($)",
           "start": "Start time",
           "end": "End time",
-          "start_time_n": "Start time {n}",
-          "end_time_n": "End time {n}",
+          "start_time_n": "Start time #{n}",
+          "end_time_n": "End time #{n}",
+          "time_range_n": "Time range #{n}",
           "add_another": "Add another time range"
         }
       },
@@ -31,8 +32,9 @@
           "cost_per_kwh": "Cost per kWh ($)",
           "start": "Start time",
           "end": "End time",
-          "start_time_n": "Start time {n}",
-          "end_time_n": "End time {n}",
+          "start_time_n": "Start time #{n}",
+          "end_time_n": "End time #{n}",
+          "time_range_n": "Time range #{n}",
           "add_another": "Add another time range"
         }
       },
@@ -43,8 +45,9 @@
           "cost_per_kwh": "Cost per kWh ($)",
           "start": "Start time",
           "end": "End time",
-          "start_time_n": "Start time {n}",
-          "end_time_n": "End time {n}",
+          "start_time_n": "Start time #{n}",
+          "end_time_n": "End time #{n}",
+          "time_range_n": "Time range #{n}",
           "add_another": "Add another time range",
           "delete_this_window": "❌ Delete?"
         }
@@ -112,8 +115,9 @@
           "cost_per_kwh": "Cost per kWh ($)",
           "start": "Start time",
           "end": "End time",
-          "start_time_n": "Start time {n}",
-          "end_time_n": "End time {n}",
+          "start_time_n": "Start time #{n}",
+          "end_time_n": "End time #{n}",
+          "time_range_n": "Time range #{n}",
           "add_another": "Add another time range"
         },
         "submit": "Save"
@@ -125,8 +129,9 @@
           "cost_per_kwh": "Cost per kWh ($)",
           "start": "Start time",
           "end": "End time",
-          "start_time_n": "Start time {n}",
-          "end_time_n": "End time {n}",
+          "start_time_n": "Start time #{n}",
+          "end_time_n": "End time #{n}",
+          "time_range_n": "Time range #{n}",
           "add_another": "Add another time range",
           "delete_this_window": "❌ Delete?"
         },

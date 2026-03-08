@@ -31,16 +31,15 @@ One entry = one energy source + many windows. You can add multiple entries (e.g.
 1. **Settings → Devices & Services → Add Integration** → Energy Window Tracker
 2. **Step 1:** Pick a daily cumulative sensor that resets (e.g. at midnight)
 3. **Step 2:** One **Window name**, one **Cost per kWh**, and one or more time ranges:
-   - First pair: **Start time** / **End time**
-   - More pairs: **Start time 1** / **End time 1**, **Start time 2** / **End time 2**, etc.
-   - Use **Add another time range** to add more pairs, then submit to save. All ranges with the same name are combined into one sensor (e.g. Off-peak 00:00–07:00 and 23:00–23:59).
+   - Each range is shown as **Time range #1**, **Time range #2**, … with **Start time** and **End time** under it. Use **Add another time range** to add more, then submit to save.
+   - All ranges with the same name are combined into one sensor (e.g. Off-peak 00:00–07:00 and 23:00–23:59).
    - Windows are **same-day only** (start &lt; end). For “end of day” use e.g. 23:00–23:59.
    - You can add more named windows later via **⚙️ Configure**.
 
 **Configure menu (⚙️ on the entry):**
 
-- **✚ Add new window** — One window name, one cost per kWh, then Start/End time (and **Add another time range** for more pairs). Submit to save.
-- **✏️ Manage windows** — One option per **unique window name** (not per range). Choosing a name opens the edit form for **all** ranges with that name; you can change times, add/remove ranges with **Add another time range**, or **Delete** that window. Saving **replaces** every range for that name with the new set.
+- **✚ Add new window** — One window name, one cost per kWh, then **Time range #1** (Start time / End time). Use **Add another time range** for more; submit to save. New windows appear under the entry’s entities right away.
+- **✏️ Manage windows** — One option per **unique window name** (not per range). Choosing a name opens the edit form for **all** ranges with that name; you can change times, add/remove ranges with **Add another time range**, or **Delete** that window. Saving **replaces** every range for that name with the new set. Changes apply immediately.
 - **⚡️ Update energy source** — New sensor + optional friendly name. Checkbox: remove old entities and data or keep them and clean up manually. Changing the source will create new entity IDs. 
 
 ## Sensors

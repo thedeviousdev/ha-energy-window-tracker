@@ -346,6 +346,10 @@ async def test_options_flow_update_source_entity_submit_remove_previous(
         "custom_components.energy_window_tracker.sensor.Store.async_load",
         new_callable=AsyncMock,
         return_value={},
+    ), patch.object(
+        hass.config_entries,
+        "async_reload",
+        new_callable=AsyncMock,
     ):
         opts_result = await hass.config_entries.options.async_init(entry.entry_id)
         result = await hass.config_entries.options.async_configure(
@@ -407,6 +411,10 @@ async def test_options_flow_update_source_entity_submit_retain_previous(
         "custom_components.energy_window_tracker.sensor.Store.async_load",
         new_callable=AsyncMock,
         return_value={},
+    ), patch.object(
+        hass.config_entries,
+        "async_reload",
+        new_callable=AsyncMock,
     ):
         opts_result = await hass.config_entries.options.async_init(entry.entry_id)
         result = await hass.config_entries.options.async_configure(

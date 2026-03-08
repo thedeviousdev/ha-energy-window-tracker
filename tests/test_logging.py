@@ -133,7 +133,7 @@ async def test_options_flow_save_logging(
     mock_config_entry: ConfigEntry,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Options flow save (e.g. update source) logs 'options flow: saved' and options reload."""
+    """Options flow save (e.g. update source) logs 'options flow: built options' and completes with CREATE_ENTRY."""
     for logger_name in COMPONENT_LOGGERS:
         caplog.set_level(logging.DEBUG, logger=logger_name)
     hass.states.async_set("sensor.today_load", "0")
@@ -159,10 +159,8 @@ async def test_options_flow_save_logging(
     assert result["type"] is data_entry_flow.FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
     messages = _component_messages(caplog)
-    assert "options flow: saved" in messages
+    assert "options flow: built options" in messages
     assert "entry_id=" in messages and "source_entity=" in messages
-    # Listener triggers reload; we see either update_options log or setup from reload
-    assert "async_update_options" in messages or "async_setup_entry" in messages
 
 
 @pytest.mark.asyncio

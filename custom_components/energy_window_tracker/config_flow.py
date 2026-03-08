@@ -934,8 +934,10 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         windows: list[dict[str, Any]],
         source_name: str | None = None,
     ) -> dict[str, Any]:
-        """Update entry with source and windows, reload, and return options to persist.
-        Caller must pass this dict to async_create_entry so options are written to storage.
+        """Build and return the new options dict. Do not reload here.
+        Caller must pass this dict to async_create_entry(data=...) so the flow
+        framework persists it. Reload is triggered by the update listener when
+        the entry is updated after the flow completes.
         """
         if source_name is None or not source_name.strip():
             source_name = _get_entity_friendly_name(self.hass, source_entity)
@@ -948,17 +950,12 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         }
         # Merge with existing options so we don't drop other keys (e.g. _retain_entity_unique_ids)
         new_options = {**(self._config_entry.options or {}), CONF_SOURCES: [new_source]}
-        self.hass.config_entries.async_update_entry(
-            self._config_entry,
-            options=new_options,
-        )
         _LOGGER.debug(
-            "options flow: saved entry_id=%s source_entity=%r windows=%s",
+            "options flow: built options entry_id=%s source_entity=%r windows=%s",
             self._config_entry.entry_id,
             source_entity,
             [w.get(CONF_WINDOW_NAME) for w in windows],
         )
-        await self.hass.config_entries.async_reload(self._config_entry.entry_id)
         return new_options
 
     async def async_step_init(

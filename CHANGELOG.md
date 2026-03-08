@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.14](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.13...v2.3.14) (2026-03-08)
+
+
+### Bug Fixes
+
+* **options:** add debug log when returning options flow result ([#166](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/166)) ([34ae115](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/34ae1155ffb7c05f3ed1eed290c5a0f006a6d0e8))
+
 ## [2.3.13](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.12...v2.3.13) (2026-03-08)
 
 

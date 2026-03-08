@@ -156,7 +156,7 @@ async def test_options_flow_save_logging(
                 "remove_previous_entities": True,
             },
         )
-    assert result["type"] is data_entry_flow.FlowResultType.MENU
+    assert result["type"] is data_entry_flow.FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
     messages = _component_messages(caplog)
     assert "options flow: saved" in messages

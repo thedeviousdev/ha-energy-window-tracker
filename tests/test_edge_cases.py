@@ -218,10 +218,8 @@ async def test_options_manage_windows_empty_submit_returns_to_menu(
             "delete_this_window": True,
         },
     )
-    # Delete is immediate; we have 0 windows -> manage_windows_empty
-    assert result["step_id"] == "manage_windows_empty"
-    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
-    assert result["type"] is data_entry_flow.FlowResultType.MENU
+    # After save the options flow completes (options persist); flow closes
+    assert result["type"] is data_entry_flow.FlowResultType.CREATE_ENTRY
 
 
 @pytest.mark.asyncio
@@ -271,7 +269,7 @@ async def test_options_add_window_add_another_then_save_two_ranges(
                 "add_another": False,
             },
         )
-    assert result["type"] is data_entry_flow.FlowResultType.MENU
+    assert result["type"] is data_entry_flow.FlowResultType.CREATE_ENTRY
     entry = hass.config_entries.async_get_entry(mock_config_entry.entry_id)
     assert entry
     sources = entry.options.get(CONF_SOURCES) or entry.data.get(CONF_SOURCES) or []
@@ -385,9 +383,8 @@ async def test_options_edit_window_replaces_all_ranges_for_that_name(
                 "delete_this_window": False,
             },
         )
-    # After save we return to Manage windows list (form), not the options menu
-    assert result["type"] is data_entry_flow.FlowResultType.FORM
-    assert result["step_id"] == "manage_windows"
+    # After save the options flow completes so options persist
+    assert result["type"] is data_entry_flow.FlowResultType.CREATE_ENTRY
     entry = hass.config_entries.async_get_entry(entry.entry_id)
     assert entry
     sources = entry.options.get(CONF_SOURCES) or entry.data.get(CONF_SOURCES) or []
@@ -431,6 +428,82 @@ async def test_options_update_source_empty_entity_rejected(
     except InvalidData:
         # Schema (EntitySelector) may reject empty before flow runs
         pass
+
+
+@pytest.mark.asyncio
+async def test_window_form_labels_built_from_time_range_n(hass: HomeAssistant) -> None:
+    """Labels for start/end fields are built from time_range_n + start_suffix/end_suffix (dynamic, any N)."""
+    from custom_components.energy_window_tracker.config_flow import (
+        _data_key,
+        _get_window_form_labels,
+    )
+
+    step_id = "add_window"
+    trans = {
+        _data_key(step_id, "time_range_n"): "Time range #{n}",
+        _data_key(step_id, "start_suffix"): "Start time",
+        _data_key(step_id, "end_suffix"): "End time",
+    }
+    with patch(
+        "custom_components.energy_window_tracker.config_flow.async_get_translations",
+        new_callable=AsyncMock,
+        return_value=trans,
+    ):
+        labels = await _get_window_form_labels(hass, "options", step_id, num_ranges=3)
+
+    assert labels["start"] == "Time range #1 — Start time"
+    assert labels["end"] == "Time range #1 — End time"
+    assert labels["start_1"] == "Time range #2 — Start time"
+    assert labels["end_1"] == "Time range #2 — End time"
+    assert labels["start_2"] == "Time range #3 — Start time"
+    assert labels["end_2"] == "Time range #3 — End time"
+
+
+@pytest.mark.asyncio
+async def test_window_form_schema_descriptions_match_dynamic_labels(hass: HomeAssistant) -> None:
+    """Schema field descriptions (shown as labels) match time_range_n template for any number of slots."""
+    from custom_components.energy_window_tracker.config_flow import (
+        _build_single_window_multi_range_schema,
+        _get_window_form_labels,
+    )
+
+    step_id = "add_window"
+    trans = {
+        f"step.{step_id}.data.time_range_n": "Time range #{n}",
+        f"step.{step_id}.data.start_suffix": "Start time",
+        f"step.{step_id}.data.end_suffix": "End time",
+    }
+    with patch(
+        "custom_components.energy_window_tracker.config_flow.async_get_translations",
+        new_callable=AsyncMock,
+        return_value=trans,
+    ):
+        labels = await _get_window_form_labels(hass, "options", step_id, num_ranges=4)
+
+    schema = _build_single_window_multi_range_schema(
+        labels,
+        None,
+        "",
+        0.0,
+        [],
+        include_add_another=True,
+        include_delete=False,
+        num_slots=4,
+    )
+    # Schema keys are vol.Optional with .description set to the label
+    descriptions = {}
+    for key in schema.schema:
+        if getattr(key, "description", None) is not None:
+            descriptions[key.schema] = key.description
+
+    assert descriptions.get("start") == "Time range #1 — Start time"
+    assert descriptions.get("end") == "Time range #1 — End time"
+    assert descriptions.get("start_1") == "Time range #2 — Start time"
+    assert descriptions.get("end_1") == "Time range #2 — End time"
+    assert descriptions.get("start_2") == "Time range #3 — Start time"
+    assert descriptions.get("end_2") == "Time range #3 — End time"
+    assert descriptions.get("start_3") == "Time range #4 — Start time"
+    assert descriptions.get("end_3") == "Time range #4 — End time"
 
 
 # ----- Sensor / init edge cases -----

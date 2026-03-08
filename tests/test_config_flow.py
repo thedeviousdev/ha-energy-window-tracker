@@ -361,7 +361,7 @@ async def test_options_flow_update_source_entity_submit_remove_previous(
             result["flow_id"],
             {CONF_SOURCE_ENTITY: "sensor.today_import", CONF_NAME: "Import"},
         )
-    assert result["type"] is data_entry_flow.FlowResultType.MENU
+    assert result["type"] is data_entry_flow.FlowResultType.CREATE_ENTRY
     entry = hass.config_entries.async_get_entry(entry.entry_id)
     assert entry
     sources = entry.options.get(CONF_SOURCES) or entry.data.get(CONF_SOURCES) or []
@@ -425,7 +425,7 @@ async def test_options_flow_update_source_entity_submit_retain_previous(
             result["flow_id"],
             {CONF_SOURCE_ENTITY: "sensor.today_import", CONF_NAME: "Import"},
         )
-    assert result["type"] is data_entry_flow.FlowResultType.MENU
+    assert result["type"] is data_entry_flow.FlowResultType.CREATE_ENTRY
     entry = hass.config_entries.async_get_entry(entry.entry_id)
     assert entry
     sources = entry.options.get(CONF_SOURCES) or entry.data.get(CONF_SOURCES) or []

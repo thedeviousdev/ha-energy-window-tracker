@@ -43,8 +43,10 @@ async def test_sensor_setup_creates_entities(
     assert len(our_entities) == 1
     state = hass.states.get(our_entities[0].entity_id)
     assert state is not None
-    assert state.attributes.get("start") == "09:00"
-    assert state.attributes.get("end") == "17:00"
+    ranges = state.attributes.get("ranges") or []
+    assert len(ranges) == 1
+    assert ranges[0].get("start") == "09:00"
+    assert ranges[0].get("end") == "17:00"
 
 
 @pytest.mark.asyncio
@@ -68,5 +70,8 @@ async def test_sensor_attributes(
     assert "source_entity" in state.attributes
     assert state.attributes["source_entity"] == "sensor.today_load"
     assert "status" in state.attributes
-    assert "start" in state.attributes
-    assert "end" in state.attributes
+    assert "ranges" in state.attributes
+    assert isinstance(state.attributes["ranges"], list)
+    assert len(state.attributes["ranges"]) >= 1
+    assert "start" in state.attributes["ranges"][0]
+    assert "end" in state.attributes["ranges"][0]

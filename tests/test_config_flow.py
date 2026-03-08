@@ -122,7 +122,7 @@ async def test_windows_validation_invalid_time_range(hass: HomeAssistant) -> Non
             "end": "09:00",
         },
     )
-    # Flow collects only windows with start < end; this row is skipped -> 0 windows -> at_least_one_window
+    # Flow collects only windows with start < end; all rows skipped -> 0 windows -> at_least_one_window
     assert result["type"] is data_entry_flow.FlowResultType.FORM
     assert result["errors"] == {"base": "at_least_one_window"}
 

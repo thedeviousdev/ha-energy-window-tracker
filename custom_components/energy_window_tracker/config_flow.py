@@ -215,9 +215,11 @@ def _build_windows_schema(
     default_source_name: str | None = None,
     use_simple_keys: bool = False,
     row_labels: dict[int, tuple[str, str, str, str]] | None = None,
+    include_add_another: bool = False,
 ) -> vol.Schema:
     """Build schema: optional source name, then num_rows window rows. use_simple_keys=True uses name/start/end for row 0.
     row_labels: optional dict mapping row index -> (name_lbl, start_lbl, end_lbl, cost_lbl) for description= (dynamic rows).
+    include_add_another: add an "Add another time range" boolean (initial setup only).
     """
     existing = existing_windows or []
     if not isinstance(existing, list):
@@ -278,6 +280,8 @@ def _build_windows_schema(
             ] = selector.NumberSelector(
                 selector.NumberSelectorConfig(min=0, max=100, step=0.001, mode="box")
             )
+    if include_add_another:
+        schema_dict[vol.Optional("add_another", default=False, description="Add another time range")] = bool
     return vol.Schema(schema_dict)
 
 
@@ -292,7 +296,7 @@ def _parse_cost(v: Any) -> float:
 
 
 def _collect_windows_from_input(data: dict, num_rows: int, use_simple_keys: bool = False) -> list[dict[str, Any]]:
-    """Collect windows from form data for rows 0..num_rows-1 where start < end."""
+    """Collect windows from form data for rows 0..num_rows-1. Same-day only (start < end); no overnight."""
     windows = []
     for i in range(num_rows):
         if use_simple_keys and i == 0:
@@ -350,6 +354,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._pending_entry_title: str | None = None
         self._pending_sources: list[dict[str, Any]] | None = None
         self._edit_index: int = 0
+        self._initial_windows: list[dict[str, Any]] = []
 
     def _get_pending_source(self) -> dict[str, Any]:
         """Get the single pending source (during initial flow before entry exists)."""
@@ -395,10 +400,29 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=_build_step_user_schema(),
         )
 
+    def _windows_form_schema_args(
+        self,
+        num_rows: int,
+        existing_rows: list[dict[str, Any]],
+        default_source_name: str,
+        row_labels: dict[int, tuple[str, str, str, str]],
+    ) -> dict[str, Any]:
+        """Common args for _build_windows_schema in step_windows."""
+        return {
+            "hass": self.hass,
+            "source_entity": _normalize_entity_selector_value(self._source_entity) or "",
+            "existing_windows": existing_rows,
+            "num_rows": num_rows,
+            "default_source_name": default_source_name,
+            "use_simple_keys": True,
+            "row_labels": row_labels,
+            "include_add_another": True,
+        }
+
     async def async_step_windows(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
-        """Step 2: source name and one window row."""
+        """Step 2: source name and time range(s). One row by default; use 'Add another' for more."""
         errors: dict[str, str] = {}
         source_entity = _normalize_entity_selector_value(self._source_entity) or ""
         _LOGGER.info(
@@ -406,7 +430,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             "submitted" if user_input is not None else "None (show form)",
             source_entity,
         )
-        num_rows = 1
+        num_rows = len(self._initial_windows) + 1
         row_labels = await _get_window_row_labels(self.hass, num_rows)
         defaults = await _get_config_defaults(self.hass)
         default_name = _get_entity_friendly_name(self.hass, source_entity, defaults["window_name"])
@@ -419,30 +443,22 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_show_form(
                     step_id="windows",
                     data_schema=_build_windows_schema(
-                        self.hass,
-                        source_entity,
-                        _get_window_rows_from_input(user_input, num_rows, use_simple_keys=True),
-                        num_rows=num_rows,
-                        default_source_name=user_input.get("source_name") or default_name,
-                        use_simple_keys=True,
-                        row_labels=row_labels,
+                        **self._windows_form_schema_args(
+                            num_rows, _get_window_rows_from_input(user_input, num_rows, use_simple_keys=True), user_input.get("source_name") or default_name, row_labels
+                        )
                     ),
                     errors=errors,
                 )
-            start = _time_to_str(user_input.get("start") or "00:00")
-            end = _time_to_str(user_input.get("end") or "00:00")
-            if start >= end:
-                errors["base"] = "window_start_after_end"
+            if user_input.get("add_another"):
+                self._initial_windows = windows
+                num_rows = len(self._initial_windows) + 1
+                row_labels = await _get_window_row_labels(self.hass, num_rows)
                 return self.async_show_form(
                     step_id="windows",
                     data_schema=_build_windows_schema(
-                        self.hass,
-                        source_entity,
-                        _get_window_rows_from_input(user_input, num_rows, use_simple_keys=True),
-                        num_rows=num_rows,
-                        default_source_name=user_input.get("source_name") or default_name,
-                        use_simple_keys=True,
-                        row_labels=row_labels,
+                        **self._windows_form_schema_args(
+                            num_rows, self._initial_windows, user_input.get("source_name") or default_name, row_labels
+                        )
                     ),
                     errors=errors,
                 )
@@ -454,13 +470,9 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_show_form(
                     step_id="windows",
                     data_schema=_build_windows_schema(
-                        self.hass,
-                        source_entity,
-                        _get_window_rows_from_input(user_input, num_rows, use_simple_keys=True),
-                        num_rows=num_rows,
-                        default_source_name=user_input.get("source_name") or default_name,
-                        use_simple_keys=True,
-                        row_labels=row_labels,
+                        **self._windows_form_schema_args(
+                            num_rows, _get_window_rows_from_input(user_input, num_rows, use_simple_keys=True), user_input.get("source_name") or default_name, row_labels
+                        )
                     ),
                     errors={"base": "source_already_in_use"},
                     description_placeholders={"entry_title": existing.title or defaults["entry_title"]},
@@ -471,7 +483,6 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 source_entity,
                 [w.get(CONF_WINDOW_NAME) for w in windows],
             )
-            # Create entry immediately so submitted values are saved
             return self.async_create_entry(
                 title=entry_title,
                 data={
@@ -488,12 +499,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         try:
             _LOGGER.debug("config flow step windows: building form default_source_name=%r", default_name)
             schema = _build_windows_schema(
-                self.hass,
-                source_entity,
-                num_rows=num_rows,
-                default_source_name=default_name,
-                use_simple_keys=True,
-                row_labels=row_labels,
+                **self._windows_form_schema_args(num_rows, self._initial_windows, default_name, row_labels)
             )
         except Exception as err:
             _LOGGER.exception("config flow step windows: failed to build schema: %s", err)

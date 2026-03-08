@@ -963,6 +963,10 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         """
         result = self.async_create_entry(title=None, data=options)
         result["options"] = options
+        _LOGGER.debug(
+            "options flow: returning CreateEntry with data and options (entry_id=%s)",
+            self._config_entry.entry_id,
+        )
         return result
 
     async def async_step_init(

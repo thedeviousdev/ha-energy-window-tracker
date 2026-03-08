@@ -17,7 +17,8 @@
           "name": "Window name",
           "start": "Start time",
           "end": "End Time",
-          "cost_per_kwh": "Cost per kWh ($)"
+          "cost_per_kwh": "Cost per kWh ($)",
+          "add_another": "Add another time range"
         },
         "row_templates": {
           "name": "Window {n} name",

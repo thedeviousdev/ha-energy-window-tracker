@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
@@ -153,7 +154,7 @@ class WindowData:
             return None
 
     def get_window_value(self, window: WindowConfig) -> tuple[float | None, str]:
-        """Get energy value and status for a window."""
+        """Get energy value and status for a window (same-day only; start < end)."""
         total = self.get_source_value()
         now = dt_util.now()
         current_minutes = now.hour * 60 + now.minute
@@ -161,7 +162,7 @@ class WindowData:
         start_min = window.start_h * 60 + window.start_m
         end_min = window.end_h * 60 + window.end_m
         in_window = start_min <= current_minutes < end_min
-        window_ended = end_min <= current_minutes
+        window_ended = current_minutes >= end_min
 
         if total is None:
             return None, "unavailable"
@@ -202,7 +203,8 @@ class WindowData:
                 continue
             start_min = w.start_h * 60 + w.start_m
             end_min = w.end_h * 60 + w.end_m
-            if not (start_min <= current_minutes < end_min):
+            in_window = start_min <= current_minutes < end_min
+            if not in_window:
                 return False
             if not self._snapshot_date:
                 self._snapshot_date = now.date().isoformat()
@@ -275,7 +277,7 @@ class WindowData:
         self._notify_update()
 
     def _handle_midnight(self, now: datetime) -> None:
-        """Reset snapshots at midnight."""
+        """Reset snapshots at midnight (day always starts at 00:00)."""
         _LOGGER.debug("_handle_midnight: resetting snapshots for %s", self._source_entity)
         self._snapshots = {
             w.index: WindowSnapshots(snapshot_start=None, snapshot_end=None)
@@ -353,18 +355,24 @@ async def async_setup_entry(
         await data.load()
         entry_data[slug] = data
 
-        for i, window in enumerate(windows):
+        # Group time ranges by window name: one sensor per name, value = sum over its ranges
+        by_name: OrderedDict[str, list[WindowConfig]] = OrderedDict()
+        for w in windows:
+            by_name.setdefault(w.name, []).append(w)
+
+        for name_index, (window_name, ranges) in enumerate(by_name.items()):
             sensor = WindowEnergySensor(
                 hass=hass,
                 entry_id=entry.entry_id,
                 config_name=source_name,
-                window=window,
+                window_name=window_name,
+                ranges=ranges,
                 data=data,
-                windows=windows,
-                is_first=(i == 0),
+                all_windows=windows,
+                is_first=(name_index == 0),
                 source_slug=slug,
                 source_index=source_index,
-                window_index=i,
+                name_index=name_index,
             )
             all_sensors.append(sensor)
 
@@ -415,25 +423,24 @@ class WindowEnergySensor(RestoreSensor):
         hass: HomeAssistant,
         entry_id: str,
         config_name: str,
-        window: WindowConfig,
+        window_name: str,
+        ranges: list[WindowConfig],
         data: WindowData,
-        windows: list[WindowConfig],
+        all_windows: list[WindowConfig],
         is_first: bool = False,
         source_slug: str | None = None,
         source_index: int = 0,
-        window_index: int = 0,
+        name_index: int = 0,
     ) -> None:
         self.hass = hass
         self._entry_id = entry_id
-        self._window = window
+        self._window_name = window_name
+        self._ranges = ranges
         self._data = data
-        self._windows = windows
+        self._all_windows = all_windows
         self._is_first = is_first
-        # Name used at registration so entity_id includes source (e.g. sensor.today_load_peak).
-        # Friendly name is set to window name only in async_added_to_hass.
-        self._attr_name = f"{source_slug} {window.name}" if source_slug else window.name
-        # unique_id includes source_slug so entity_id changes when the user updates the energy source.
-        self._attr_unique_id = f"{entry_id}_{source_slug}_{window_index}"
+        self._attr_name = f"{source_slug} {window_name}" if source_slug else window_name
+        self._attr_unique_id = f"{entry_id}_{source_slug}_{name_index}"
         self._last_source_value: float | None = None
         self._last_status: str | None = None
 
@@ -442,7 +449,7 @@ class WindowEnergySensor(RestoreSensor):
         await super().async_added_to_hass()
 
         # Friendly name is window name only (entity_id already includes source from __init__ name).
-        self._attr_name = self._window.name
+        self._attr_name = self._window_name
 
         if (last := await self.async_get_last_sensor_data()) is not None:
             self._attr_native_value = last.native_value
@@ -459,7 +466,7 @@ class WindowEnergySensor(RestoreSensor):
 
         if self._is_first:
             unsubs = []
-            for w in self._windows:
+            for w in self._all_windows:
                 unsubs.append(
                     async_track_time_change(
                         self.hass,
@@ -513,24 +520,49 @@ class WindowEnergySensor(RestoreSensor):
             self.hass.add_job(self.async_write_ha_state)
 
     def _update_value(self) -> None:
-        value, status = self._data.get_window_value(self._window)
-        if status == "during_window (no snapshot)":
-            if self._data.take_late_start_snapshot(self._window.index):
-                value, status = self._data.get_window_value(self._window)
-        self._attr_native_value = value
+        total_value: float | None = None
+        combined_status = "before_window"
+        total_cost = 0.0
+        range_attrs: list[dict[str, str]] = []
+
+        for r in self._ranges:
+            value, status = self._data.get_window_value(r)
+            if status == "during_window (no snapshot)":
+                if self._data.take_late_start_snapshot(r.index):
+                    value, status = self._data.get_window_value(r)
+            if value is not None:
+                try:
+                    total_value = (total_value or 0.0) + float(value)
+                except (TypeError, ValueError):
+                    pass
+            if r.cost_per_kwh > 0 and value is not None:
+                try:
+                    total_cost += round(float(value) * r.cost_per_kwh, 2)
+                except (TypeError, ValueError) as e:
+                    _LOGGER.debug(
+                        "_update_value: cost calc failed window=%r value=%r: %s",
+                        r.name,
+                        value,
+                        e,
+                    )
+            range_attrs.append({
+                "start": _time_str(r.start_h, r.start_m),
+                "end": _time_str(r.end_h, r.end_m),
+            })
+            if status.startswith("during_window"):
+                combined_status = status
+            elif status.startswith("after_window") and not combined_status.startswith("during_window"):
+                combined_status = status
+
+        self._attr_native_value = round(total_value, 3) if total_value is not None else None
         attrs: dict[str, Any] = {
             ATTR_SOURCE_ENTITY: self._data._source_entity,
-            ATTR_STATUS: status,
-            "start": _time_str(self._window.start_h, self._window.start_m),
-            "end": _time_str(self._window.end_h, self._window.end_m),
+            ATTR_STATUS: combined_status,
+            "ranges": range_attrs,
         }
-        if self._window.cost_per_kwh > 0 and value is not None:
-            try:
-                cost = round(float(value) * self._window.cost_per_kwh, 2)
-                attrs[ATTR_COST] = cost
-            except (TypeError, ValueError) as e:
-                _LOGGER.debug("_update_value: cost calc failed window=%r value=%r: %s", self._window.name, value, e)
+        if total_cost > 0:
+            attrs[ATTR_COST] = round(total_cost, 2)
         self._attr_extra_state_attributes = attrs
         self._last_source_value = self._data.get_source_value()
-        self._last_status = status
+        self._last_status = combined_status
 

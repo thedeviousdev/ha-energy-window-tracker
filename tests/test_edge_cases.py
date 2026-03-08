@@ -420,8 +420,12 @@ async def test_setup_entry_multiple_windows_creates_multiple_sensors(
     await hass.async_block_till_done()
     sensors = _get_tracker_sensors(hass, entry.entry_id)
     assert len(sensors) == 2
-    names = {hass.states.get(s.entity_id).attributes.get("start") for s in sensors}
-    assert "09:00" in names and "12:00" in names
+    starts = set()
+    for s in sensors:
+        state = hass.states.get(s.entity_id)
+        if state and state.attributes.get("ranges"):
+            starts.add(state.attributes["ranges"][0]["start"])
+    assert "09:00" in starts and "12:00" in starts
 
 
 @pytest.mark.asyncio

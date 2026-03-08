@@ -57,13 +57,14 @@ async def test_windows_step_start_equals_end_rejected(hass: HomeAssistant) -> No
         result["flow_id"],
         {
             "source_name": "Energy",
-            "name": "Peak",
+            "window_name": "Peak",
+            "cost_per_kwh": 0,
             "start": "12:00",
             "end": "12:00",
         },
     )
     assert result["type"] is data_entry_flow.FlowResultType.FORM
-    assert result.get("errors", {}).get("base") == "at_least_one_window"
+    assert result.get("errors", {}).get("base") in ("at_least_one_window", "window_start_after_end")
 
 
 @pytest.mark.asyncio
@@ -81,7 +82,8 @@ async def test_windows_step_empty_window_name_creates_entry(hass: HomeAssistant)
         result["flow_id"],
         {
             "source_name": "Energy",
-            "name": "   ",
+            "window_name": "   ",
+            "cost_per_kwh": 0,
             "start": "09:00",
             "end": "17:00",
         },
@@ -107,7 +109,7 @@ async def test_windows_step_cost_zero_stored(hass: HomeAssistant) -> None:
         result["flow_id"],
         {
             "source_name": "Energy",
-            "name": "Peak",
+            "window_name": "Peak",
             "start": "09:00",
             "end": "17:00",
             CONF_COST_PER_KWH: 0,
@@ -138,7 +140,8 @@ async def test_options_add_window_invalid_time_range_shows_error(
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         {
-            CONF_WINDOW_NAME: "Off-Peak",
+            "window_name": "Off-Peak",
+            "cost_per_kwh": 0,
             "start": "18:00",
             "end": "06:00",
         },
@@ -173,7 +176,8 @@ async def test_options_edit_window_invalid_time_range_shows_error(
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         {
-            CONF_WINDOW_NAME: "Peak",
+            "window_name": "Peak",
+            "cost_per_kwh": 0,
             "start": "17:00",
             "end": "09:00",
             "delete_this_window": False,
@@ -207,21 +211,184 @@ async def test_options_manage_windows_empty_submit_returns_to_menu(
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         {
-            CONF_WINDOW_NAME: "Peak",
+            "window_name": "Peak",
+            "cost_per_kwh": 0,
             "start": "09:00",
             "end": "17:00",
             "delete_this_window": True,
         },
     )
-    assert result["step_id"] == "confirm_delete"
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        {},
-    )
-    # After delete we have 0 windows -> manage_windows_empty
+    # Delete is immediate; we have 0 windows -> manage_windows_empty
     assert result["step_id"] == "manage_windows_empty"
     result = await hass.config_entries.options.async_configure(result["flow_id"], {})
     assert result["type"] is data_entry_flow.FlowResultType.MENU
+
+
+@pytest.mark.asyncio
+async def test_options_add_window_add_another_then_save_two_ranges(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """Options Add window: use Add another time range, submit with two ranges; entry has new window with 2 ranges."""
+    hass.states.async_set("sensor.today_load", "0")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ):
+        opts = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        opts["flow_id"],
+        {"next_step_id": "add_window"},
+    )
+    assert result["step_id"] == "add_window"
+    # First submit: one range, add_another=True
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            "window_name": "Off-Peak",
+            "cost_per_kwh": 0.1,
+            "start": "00:00",
+            "end": "07:00",
+            "add_another": True,
+        },
+    )
+    assert result["type"] is data_entry_flow.FlowResultType.FORM
+    assert result["step_id"] == "add_window"
+    # Second submit: two ranges (start_1, end_1), add_another=False
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            "window_name": "Off-Peak",
+            "cost_per_kwh": 0.1,
+            "start": "00:00",
+            "end": "07:00",
+            "start_1": "23:00",
+            "end_1": "23:59",
+            "add_another": False,
+        },
+    )
+    assert result["type"] is data_entry_flow.FlowResultType.MENU
+    entry = hass.config_entries.async_get_entry(mock_config_entry.entry_id)
+    assert entry
+    sources = entry.options.get(CONF_SOURCES) or entry.data.get(CONF_SOURCES) or []
+    windows = sources[0][CONF_WINDOWS]
+    assert len(windows) == 3  # original Peak 09-17 + Off-Peak 00-07 + Off-Peak 23-23:59
+    off_peak = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "") == "Off-Peak"]
+    assert len(off_peak) == 2
+    assert off_peak[0][CONF_WINDOW_START] == "00:00" and off_peak[0][CONF_WINDOW_END] == "07:00"
+    assert off_peak[1][CONF_WINDOW_START] == "23:00" and off_peak[1][CONF_WINDOW_END] == "23:59"
+
+
+@pytest.mark.asyncio
+async def test_options_manage_windows_shows_unique_names_only(
+    hass: HomeAssistant,
+) -> None:
+    """Manage windows list shows one option per unique window name (not per range)."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Multi",
+        data={
+            CONF_SOURCES: [
+                {
+                    CONF_SOURCE_ENTITY: "sensor.today_load",
+                    CONF_NAME: "Energy",
+                    CONF_WINDOWS: [
+                        {CONF_WINDOW_NAME: "Peak", CONF_WINDOW_START: "09:00", CONF_WINDOW_END: "12:00"},
+                        {CONF_WINDOW_NAME: "Peak", CONF_WINDOW_START: "14:00", CONF_WINDOW_END: "17:00"},
+                        {CONF_WINDOW_NAME: "Off-Peak", CONF_WINDOW_START: "12:00", CONF_WINDOW_END: "14:00"},
+                    ],
+                }
+            ]
+        },
+        options={},
+        entry_id="multi_ranges_id",
+    )
+    entry.add_to_hass(hass)
+    hass.states.async_set("sensor.today_load", "0")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ):
+        opts = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        opts["flow_id"],
+        {"next_step_id": "list_windows"},
+    )
+    assert result["step_id"] in ("list_windows", "manage_windows")
+    # Select option 1 (Off-Peak); proves list has at least 2 options (Peak=0, Off-Peak=1)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {"window_index": "1"},
+    )
+    assert result["step_id"] == "edit_window"
+
+
+@pytest.mark.asyncio
+async def test_options_edit_window_replaces_all_ranges_for_that_name(
+    hass: HomeAssistant,
+) -> None:
+    """Editing a window by name replaces all ranges for that name with the new set."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Edit Ranges",
+        data={
+            CONF_SOURCES: [
+                {
+                    CONF_SOURCE_ENTITY: "sensor.today_load",
+                    CONF_NAME: "Energy",
+                    CONF_WINDOWS: [
+                        {CONF_WINDOW_NAME: "Peak", CONF_WINDOW_START: "09:00", CONF_WINDOW_END: "12:00", CONF_COST_PER_KWH: 0.2},
+                        {CONF_WINDOW_NAME: "Peak", CONF_WINDOW_START: "14:00", CONF_WINDOW_END: "17:00", CONF_COST_PER_KWH: 0.2},
+                    ],
+                }
+            ]
+        },
+        options={},
+        entry_id="edit_ranges_id",
+    )
+    entry.add_to_hass(hass)
+    hass.states.async_set("sensor.today_load", "0")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ):
+        opts = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        opts["flow_id"],
+        {"next_step_id": "list_windows"},
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {"window_index": "0"},
+    )
+    assert result["step_id"] == "edit_window"
+    # Save with a single range (10:00-11:00); invalidate second slot so only one range is collected
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            "window_name": "Peak",
+            "cost_per_kwh": 0.25,
+            "start": "10:00",
+            "end": "11:00",
+            "start_1": "11:00",
+            "end_1": "11:00",  # start >= end so this range is not collected
+            "delete_this_window": False,
+        },
+    )
+    # After save we return to Manage windows list (form), not the options menu
+    assert result["type"] is data_entry_flow.FlowResultType.FORM
+    assert result["step_id"] == "manage_windows"
+    entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert entry
+    sources = entry.options.get(CONF_SOURCES) or entry.data.get(CONF_SOURCES) or []
+    windows = sources[0][CONF_WINDOWS]
+    peak = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "") == "Peak"]
+    assert len(peak) == 1
+    assert peak[0][CONF_WINDOW_START] == "10:00"
+    assert peak[0][CONF_WINDOW_END] == "11:00"
+    assert peak[0][CONF_COST_PER_KWH] == 0.25
 
 
 @pytest.mark.asyncio

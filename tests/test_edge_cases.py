@@ -234,39 +234,43 @@ async def test_options_add_window_add_another_then_save_two_ranges(
         "custom_components.energy_window_tracker.sensor.Store.async_load",
         new_callable=AsyncMock,
         return_value={},
+    ), patch.object(
+        hass.config_entries,
+        "async_reload",
+        new_callable=AsyncMock,
     ):
         opts = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        opts["flow_id"],
-        {"next_step_id": "add_window"},
-    )
-    assert result["step_id"] == "add_window"
-    # First submit: one range, add_another=True
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        {
-            "window_name": "Off-Peak",
-            "cost_per_kwh": 0.1,
-            "start": "00:00",
-            "end": "07:00",
-            "add_another": True,
-        },
-    )
-    assert result["type"] is data_entry_flow.FlowResultType.FORM
-    assert result["step_id"] == "add_window"
-    # Second submit: two ranges (start_1, end_1), add_another=False
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        {
-            "window_name": "Off-Peak",
-            "cost_per_kwh": 0.1,
-            "start": "00:00",
-            "end": "07:00",
-            "start_1": "23:00",
-            "end_1": "23:59",
-            "add_another": False,
-        },
-    )
+        result = await hass.config_entries.options.async_configure(
+            opts["flow_id"],
+            {"next_step_id": "add_window"},
+        )
+        assert result["step_id"] == "add_window"
+        # First submit: one range, add_another=True
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "window_name": "Off-Peak",
+                "cost_per_kwh": 0.1,
+                "start": "00:00",
+                "end": "07:00",
+                "add_another": True,
+            },
+        )
+        assert result["type"] is data_entry_flow.FlowResultType.FORM
+        assert result["step_id"] == "add_window"
+        # Second submit: two ranges (start_1, end_1), add_another=False
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "window_name": "Off-Peak",
+                "cost_per_kwh": 0.1,
+                "start": "00:00",
+                "end": "07:00",
+                "start_1": "23:00",
+                "end_1": "23:59",
+                "add_another": False,
+            },
+        )
     assert result["type"] is data_entry_flow.FlowResultType.MENU
     entry = hass.config_entries.async_get_entry(mock_config_entry.entry_id)
     assert entry
@@ -353,30 +357,34 @@ async def test_options_edit_window_replaces_all_ranges_for_that_name(
         "custom_components.energy_window_tracker.sensor.Store.async_load",
         new_callable=AsyncMock,
         return_value={},
+    ), patch.object(
+        hass.config_entries,
+        "async_reload",
+        new_callable=AsyncMock,
     ):
         opts = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        opts["flow_id"],
-        {"next_step_id": "list_windows"},
-    )
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        {"window_index": "0"},
-    )
-    assert result["step_id"] == "edit_window"
-    # Save with a single range (10:00-11:00); invalidate second slot so only one range is collected
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        {
-            "window_name": "Peak",
-            "cost_per_kwh": 0.25,
-            "start": "10:00",
-            "end": "11:00",
-            "start_1": "11:00",
-            "end_1": "11:00",  # start >= end so this range is not collected
-            "delete_this_window": False,
-        },
-    )
+        result = await hass.config_entries.options.async_configure(
+            opts["flow_id"],
+            {"next_step_id": "list_windows"},
+        )
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {"window_index": "0"},
+        )
+        assert result["step_id"] == "edit_window"
+        # Save with a single range (10:00-11:00); invalidate second slot so only one range is collected
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "window_name": "Peak",
+                "cost_per_kwh": 0.25,
+                "start": "10:00",
+                "end": "11:00",
+                "start_1": "11:00",
+                "end_1": "11:00",  # start >= end so this range is not collected
+                "delete_this_window": False,
+            },
+        )
     # After save we return to Manage windows list (form), not the options menu
     assert result["type"] is data_entry_flow.FlowResultType.FORM
     assert result["step_id"] == "manage_windows"

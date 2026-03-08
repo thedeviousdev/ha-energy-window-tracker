@@ -30,22 +30,28 @@ One entry = one energy source + many windows. You can add multiple entries (e.g.
 
 1. **Settings → Devices & Services → Add Integration** → Energy Window Tracker
 2. **Step 1:** Pick a daily cumulative sensor that resets (e.g. at midnight)
-3. **Step 2:** Friendly name (optional), window name, start/end time, optional cost per kWh. You can add more windows later via **⚙️ Configure**
+3. **Step 2:** One **Window name**, one **Cost per kWh**, and one or more time ranges:
+   - First pair: **Start time** / **End time**
+   - More pairs: **Start time 1** / **End time 1**, **Start time 2** / **End time 2**, etc.
+   - Use **Add another time range** to add more pairs, then submit to save. All ranges with the same name are combined into one sensor (e.g. Off-peak 00:00–07:00 and 23:00–23:59).
+   - Windows are **same-day only** (start &lt; end). For “end of day” use e.g. 23:00–23:59.
+   - You can add more named windows later via **⚙️ Configure**.
 
 **Configure menu (⚙️ on the entry):**
 
-- **✚ Add new window** — Name, start, end, optional cost
-- **✏️ Manage windows** — Pick a window → edit (or delete with confirmation)
-- **⚡️ Update energy source** — New sensor + optional friendly name. Checkbox: remove old entities and data or keep them and clean up manually. Changing the source source will create new entity IDs 
+- **✚ Add new window** — One window name, one cost per kWh, then Start/End time (and **Add another time range** for more pairs). Submit to save.
+- **✏️ Manage windows** — One option per **unique window name** (not per range). Choosing a name opens the edit form for **all** ranges with that name; you can change times, add/remove ranges with **Add another time range**, or **Delete** that window. Saving **replaces** every range for that name with the new set.
+- **⚡️ Update energy source** — New sensor + optional friendly name. Checkbox: remove old entities and data or keep them and clean up manually. Changing the source will create new entity IDs. 
 
 ## Sensors
 
-Each window is one sensor. Friendly name = window name. Entity ID includes the source (e.g. `sensor.today_load_peak`). Find them under the entry’s **Entities** tab or **Settings → Entities** filtered by the integration.
+Each **window name** is one sensor (all time ranges with that name are summed). Friendly name = window name. Entity ID includes the source (e.g. `sensor.today_load_peak`). Find them under the entry’s **Entities** tab or **Settings → Entities** filtered by the integration.
 
 | Attribute       | Meaning |
 | --------------- | ------- |
 | `source_entity` | Source sensor |
-| `start` / `end` | Window times |
+| `ranges`        | List of `{start, end}` for this window (e.g. `[{"start": "00:00", "end": "07:00"}, {"start": "23:00", "end": "23:59"}]`) |
+| `start` / `end` | First range’s times (for backward compatibility) |
 | `status`        | before_window, during_window, after_window, etc. |
 | `cost`          | Energy × cost per kWh (if set), 2 decimals. Use e.g. `{{ state_attr('sensor.x', 'cost') }}` |
 

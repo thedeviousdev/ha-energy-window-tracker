@@ -17,8 +17,8 @@ PLATFORMS = ["sensor"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Energy Window Tracker from a config entry."""
-    # Log once via root logger so it shows even when log viewer is filtered to "core"
-    logging.debug("[energy_window_tracker] Integration loaded entry_id=%s", entry.entry_id)
+    # Log once so it shows when integration logger is enabled (e.g. at debug)
+    _MAIN_LOGGER.warning("init: Integration loaded - entry_id=%s", entry.entry_id)
     _MAIN_LOGGER.debug("init: Integration loaded - entry_id=%s", entry.entry_id)
     _MAIN_LOGGER.debug("init: async_setup_entry - entry_id=%s", entry.entry_id)
     hass.data.setdefault(DOMAIN, {})
@@ -29,7 +29,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry (called when entry is deleted or reloaded)."""
-    logging.debug("[energy_window_tracker] Entry removed/unloading entry_id=%s", entry.entry_id)
+    _MAIN_LOGGER.warning("init: Entry removed/unloading - entry_id=%s", entry.entry_id)
     _MAIN_LOGGER.debug("init: Entry removed/unloading - entry_id=%s", entry.entry_id)
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:

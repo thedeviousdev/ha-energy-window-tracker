@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.28](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.27...v2.3.28) (2026-03-09)
+
+
+### Bug Fixes
+
+* **logging:** WARNING level + root bootstrap so logs show without config ([#194](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/194)) ([f2068f0](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/f2068f0803df16c0636982159096a64cb2bb5690))
+
 ## [2.3.27](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.26...v2.3.27) (2026-03-09)
 
 

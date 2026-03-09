@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.32](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.31...v2.3.32) (2026-03-09)
+
+
+### Bug Fixes
+
+* **sensor:** discard snapshots when stored date is not today ([#202](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/202)) ([4b38664](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/4b386647879c9fd279b0e1dcabc074b9126c10f8))
+
 ## [2.3.31](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.30...v2.3.31) (2026-03-09)
 
 

@@ -68,6 +68,48 @@ async def test_windows_step_start_equals_end_rejected(hass: HomeAssistant) -> No
 
 
 @pytest.mark.asyncio
+async def test_windows_step_overlapping_ranges_rejected(hass: HomeAssistant) -> None:
+    """Second range starting before first range ends yields range_start_before_previous_end."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_USER},
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_SOURCE_ENTITY: "sensor.today_load"},
+    )
+    # Add another slot so we have two ranges
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            "source_name": "Energy",
+            "window_name": "Peak",
+            CONF_COST_PER_KWH: 0,
+            "start": "09:00",
+            "end": "12:00",
+            "add_another": True,
+        },
+    )
+    assert result["type"] is data_entry_flow.FlowResultType.FORM
+    assert result["step_id"] == "windows"
+    # Submit with overlapping ranges: 09:00-12:00 and 10:00-14:00 (10:00 < 12:00)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            "source_name": "Energy",
+            "window_name": "Peak",
+            CONF_COST_PER_KWH: 0,
+            "start": "09:00",
+            "end": "12:00",
+            "start_1": "10:00",
+            "end_1": "14:00",
+        },
+    )
+    assert result["type"] is data_entry_flow.FlowResultType.FORM
+    assert result.get("errors", {}).get("base") == "range_start_before_previous_end"
+
+
+@pytest.mark.asyncio
 async def test_windows_step_empty_window_name_creates_entry(hass: HomeAssistant) -> None:
     """Empty or whitespace window name is allowed; entry created with null/empty name."""
     result = await hass.config_entries.flow.async_init(

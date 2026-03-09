@@ -329,6 +329,16 @@ def _collect_ranges_from_single_window_form(
     return name, cost, out
 
 
+def _validate_ranges_chronological(ranges: list[tuple[str, str]]) -> str | None:
+    """Return error key if ranges overlap or are not in order (each start must be >= previous end)."""
+    if len(ranges) <= 1:
+        return None
+    for i in range(1, len(ranges)):
+        if ranges[i][0] < ranges[i - 1][1]:
+            return "range_start_before_previous_end"
+    return None
+
+
 def _parse_cost(v: Any) -> float:
     """Parse cost_per_kwh from user input; return 0 if missing or invalid."""
     if v is None:
@@ -493,6 +503,26 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 first_start = _time_to_str(user_input.get("start") or "00:00")
                 first_end = _time_to_str(user_input.get("end") or "00:00")
                 errors["base"] = "window_start_after_end" if first_start >= first_end else "at_least_one_window"
+                ranges_for_form = [{"start": user_input.get("start") or "00:00", "end": user_input.get("end") or "00:00"}]
+                for i in range(1, num_ranges_for_collect):
+                    ranges_for_form.append({"start": user_input.get(f"start_{i}") or "00:00", "end": user_input.get(f"end_{i}") or "00:00"})
+                err_labels = await _get_window_form_labels(
+                    self.hass, "config", "windows", num_ranges=num_ranges_for_collect
+                )
+                schema = _build_single_window_multi_range_schema(
+                    err_labels,
+                    user_input.get("source_name") or default_name,
+                    w_name or "",
+                    cost,
+                    ranges_for_form,
+                    include_add_another=True,
+                    include_delete=False,
+                    num_slots=num_ranges_for_collect,
+                )
+                return self.async_show_form(step_id="windows", data_schema=schema, errors=errors)
+            range_error = _validate_ranges_chronological(ranges)
+            if range_error:
+                errors["base"] = range_error
                 ranges_for_form = [{"start": user_input.get("start") or "00:00", "end": user_input.get("end") or "00:00"}]
                 for i in range(1, num_ranges_for_collect):
                     ranges_for_form.append({"start": user_input.get(f"start_{i}") or "00:00", "end": user_input.get(f"end_{i}") or "00:00"})
@@ -676,6 +706,17 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     num_slots=num_ranges_for_collect,
                 )
                 return self.async_show_form(step_id="add_window", data_schema=schema, errors=errors)
+            range_error = _validate_ranges_chronological(ranges)
+            if range_error:
+                errors = {"base": range_error}
+                ranges_for_form = [{"start": user_input.get("start") or "00:00", "end": user_input.get("end") or "00:00"}]
+                for i in range(1, num_ranges_for_collect):
+                    ranges_for_form.append({"start": user_input.get(f"start_{i}") or "00:00", "end": user_input.get(f"end_{i}") or "00:00"})
+                schema = _build_single_window_multi_range_schema(
+                    labels, None, w_name or "", cost, ranges_for_form, include_add_another=True, include_delete=False,
+                    num_slots=num_ranges_for_collect,
+                )
+                return self.async_show_form(step_id="add_window", data_schema=schema, errors=errors)
             if user_input.get("add_another"):
                 _MAIN_LOGGER.warning(
                     "config: add_window - add another time range (total %s)",
@@ -801,6 +842,17 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     num_slots=num_ranges,
                 )
                 return self.async_show_form(step_id="edit_window", data_schema=schema, errors={"base": err})
+            range_error = _validate_ranges_chronological(ranges_list)
+            if range_error:
+                ranges_for_form = [{"start": user_input.get("start") or "00:00", "end": user_input.get("end") or "00:00"}]
+                for i in range(1, num_ranges):
+                    ranges_for_form.append({"start": user_input.get(f"start_{i}") or "00:00", "end": user_input.get(f"end_{i}") or "00:00"})
+                schema = _build_single_window_multi_range_schema(
+                    labels, None, w_name or "", cost_val, ranges_for_form,
+                    include_add_another=True, include_delete=True,
+                    num_slots=num_ranges,
+                )
+                return self.async_show_form(step_id="edit_window", data_schema=schema, errors={"base": range_error})
             if user_input.get("add_another"):
                 _MAIN_LOGGER.warning(
                     "config: edit_window - add another time range for %r (total %s)",
@@ -1378,6 +1430,16 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                     num_slots=num_ranges,
                 )
                 return self.async_show_form(step_id="add_window", data_schema=schema, errors={"base": err})
+            range_error = _validate_ranges_chronological(ranges_list)
+            if range_error:
+                ranges_for_form = [{"start": user_input.get("start") or "00:00", "end": user_input.get("end") or "00:00"}]
+                for i in range(1, num_ranges):
+                    ranges_for_form.append({"start": user_input.get(f"start_{i}") or "00:00", "end": user_input.get(f"end_{i}") or "00:00"})
+                schema = _build_single_window_multi_range_schema(
+                    labels, None, w_name or "", cost, ranges_for_form, include_add_another=True, include_delete=False,
+                    num_slots=num_ranges,
+                )
+                return self.async_show_form(step_id="add_window", data_schema=schema, errors={"base": range_error})
             if user_input.get("add_another"):
                 _MAIN_LOGGER.warning(
                     "options: add_window - add another time range (total %s)",
@@ -1488,6 +1550,24 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                     num_slots=num_ranges_for_collect,
                 )
                 return self.async_show_form(step_id="edit_window", data_schema=schema, errors={"base": err})
+            range_error = _validate_ranges_chronological(ranges_list)
+            if range_error:
+                ranges_for_form = [{"start": user_input.get("start") or "00:00", "end": user_input.get("end") or "00:00"}]
+                for i in range(1, num_ranges_for_collect):
+                    ranges_for_form.append({
+                        "start": user_input.get(f"start_{i}") or "00:00",
+                        "end": user_input.get(f"end_{i}") or "00:00",
+                    })
+                err_labels = await _get_window_form_labels(
+                    self.hass, "options", "edit_window", num_ranges=num_ranges_for_collect
+                )
+                schema = _build_single_window_multi_range_schema(
+                    err_labels, None, w_name or "", cost_val,
+                    ranges_for_form,
+                    include_add_another=True, include_delete=True,
+                    num_slots=num_ranges_for_collect,
+                )
+                return self.async_show_form(step_id="edit_window", data_schema=schema, errors={"base": range_error})
             if user_input.get("add_another"):
                 _MAIN_LOGGER.warning(
                     "options: edit_window - add another time range for %r (total %s)",

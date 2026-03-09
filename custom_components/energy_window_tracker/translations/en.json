@@ -19,8 +19,6 @@
           "source_name": "Friendly name",
           "window_name": "Window name",
           "cost_per_kwh": "Cost per kWh ($)",
-          "start": "Range #1 - Start time",
-          "end": "Range #1 - End time",
           "start_suffix": "Start time",
           "end_suffix": "End time",
           "time_range_n": "Range #{n}",
@@ -33,8 +31,6 @@
         "data": {
           "window_name": "Window name",
           "cost_per_kwh": "Cost per kWh ($)",
-          "start": "Range #1 - Start time",
-          "end": "Range #1 - End time",
           "start_suffix": "Start time",
           "end_suffix": "End time",
           "time_range_n": "Range #{n}",
@@ -46,8 +42,6 @@
         "data": {
           "window_name": "Window name",
           "cost_per_kwh": "Cost per kWh ($)",
-          "start": "Range #1 - Start time",
-          "end": "Range #1 - End time",
           "start_suffix": "Start time",
           "end_suffix": "End time",
           "time_range_n": "Range #{n}",
@@ -59,6 +53,7 @@
     "error": {
       "window_start_after_end": "Start time must be earlier than end time.",
       "at_least_one_window": "At least one window is required (start time before end time).",
+      "range_start_before_previous_end": "Each range must start at or after the previous range's end time. Add ranges in chronological order (earliest first).",
       "source_already_in_use": "Sensor already in use, please edit {entry_title}."
     },
     "abort": {
@@ -116,8 +111,6 @@
         "data": {
           "window_name": "Window name",
           "cost_per_kwh": "Cost per kWh ($)",
-          "start": "Range #1 - Start time",
-          "end": "Range #1 - End time",
           "start_suffix": "Start time",
           "end_suffix": "End time",
           "time_range_n": "Range #{n}",
@@ -130,8 +123,6 @@
         "data": {
           "window_name": "Window name",
           "cost_per_kwh": "Cost per kWh ($)",
-          "start": "Range #1 - Start time",
-          "end": "Range #1 - End time",
           "start_suffix": "Start time",
           "end_suffix": "End time",
           "time_range_n": "Range #{n}",
@@ -144,6 +135,7 @@
     "error": {
       "window_start_after_end": "Start time must be earlier than end time.",
       "at_least_one_window": "At least one window is required.",
+      "range_start_before_previous_end": "Each range must start at or after the previous range's end time. Add ranges in chronological order (earliest first).",
       "source_entity_required": "Select an energy sensor.",
       "source_already_in_use": "Sensor already in use, please edit {entry_title}.",
       "remove_previous_but_source_unchanged": "Same energy source selected. To delete current windows, please do it via the \"Manage windows\" menu."

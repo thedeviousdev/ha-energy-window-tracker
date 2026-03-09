@@ -28,7 +28,7 @@ from custom_components.energy_window_tracker.const import (
 
 @pytest.mark.asyncio
 async def test_user_flow_show_form(hass: HomeAssistant) -> None:
-    """Test initial user step shows the source entity form."""
+    """[Happy] Initial user step shows the source entity form."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_USER},
@@ -40,7 +40,7 @@ async def test_user_flow_show_form(hass: HomeAssistant) -> None:
 
 @pytest.mark.asyncio
 async def test_user_flow_empty_source_shows_error(hass: HomeAssistant) -> None:
-    """Test that empty source entity is rejected (schema or flow validation)."""
+    """[Unhappy] Empty source entity is rejected (schema or flow validation)."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_USER},
@@ -63,7 +63,7 @@ async def test_user_flow_empty_source_shows_error(hass: HomeAssistant) -> None:
 
 @pytest.mark.asyncio
 async def test_user_flow_then_windows_then_create_entry(hass: HomeAssistant) -> None:
-    """Test full flow: user step -> windows step -> create entry."""
+    """[Happy] Full flow: user step -> windows step -> create entry."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_USER},
@@ -104,7 +104,7 @@ async def test_user_flow_then_windows_then_create_entry(hass: HomeAssistant) -> 
 
 @pytest.mark.asyncio
 async def test_windows_step_add_another_creates_entry_with_multiple_ranges(hass: HomeAssistant) -> None:
-    """Initial setup: Add another time range then submit creates one named window with two ranges."""
+    """[Happy] Add another time range then submit creates one named window with two ranges."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_USER},
@@ -157,7 +157,7 @@ async def test_windows_step_add_another_creates_entry_with_multiple_ranges(hass:
 
 @pytest.mark.asyncio
 async def test_windows_step_schema_has_single_name_and_cost(hass: HomeAssistant) -> None:
-    """Windows step form has one window name, one cost, start/end, and add_another (no per-row name/cost)."""
+    """[Happy] Windows step form has one window name, one cost, start/end, and add_another."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_USER},
@@ -180,7 +180,7 @@ async def test_windows_step_schema_has_single_name_and_cost(hass: HomeAssistant)
 
 @pytest.mark.asyncio
 async def test_windows_validation_invalid_time_range(hass: HomeAssistant) -> None:
-    """Test windows step rejects invalid time range (start >= end yields no valid window)."""
+    """[Unhappy] Windows step rejects invalid time range (start >= end)."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_USER},
@@ -208,7 +208,7 @@ async def test_windows_validation_invalid_time_range(hass: HomeAssistant) -> Non
 
 @pytest.mark.asyncio
 async def test_user_flow_source_already_in_use(hass: HomeAssistant) -> None:
-    """Test that selecting a sensor already used by another entry shows error."""
+    """[Unhappy] Selecting a sensor already used by another entry shows error."""
     existing = MockConfigEntry(
         domain=DOMAIN,
         title="Home Load",
@@ -247,7 +247,7 @@ async def test_user_flow_source_already_in_use(hass: HomeAssistant) -> None:
 async def test_options_flow_update_source_to_used_sensor_shows_error(
     hass: HomeAssistant, mock_config_entry: config_entries.ConfigEntry
 ) -> None:
-    """Test that changing source to a sensor already used by another entry shows error."""
+    """[Unhappy] Changing source to a sensor already used by another entry shows error."""
     other = MockConfigEntry(
         domain=DOMAIN,
         title="Home Import",
@@ -298,7 +298,7 @@ async def test_options_flow_update_source_to_used_sensor_shows_error(
 async def test_options_flow_init_shows_menu(
     hass: HomeAssistant, mock_config_entry: config_entries.ConfigEntry
 ) -> None:
-    """Test options flow shows menu (Add window, Manage windows, Update energy source)."""
+    """[Happy] Options flow shows menu (Add window, Manage windows, Update energy source)."""
     entry = mock_config_entry
     opts_result = await hass.config_entries.options.async_init(entry.entry_id)
     assert opts_result["type"] is data_entry_flow.FlowResultType.MENU
@@ -315,7 +315,7 @@ async def test_options_flow_init_shows_menu(
 async def test_options_flow_update_source_entity_form(
     hass: HomeAssistant, mock_config_entry: config_entries.ConfigEntry
 ) -> None:
-    """Test options flow: choose Update energy source -> form with checkbox (no confirm step)."""
+    """[Happy] Options flow: choose Update energy source -> form with checkbox."""
     entry = mock_config_entry
     opts_result = await hass.config_entries.options.async_init(entry.entry_id)
     assert opts_result["type"] is data_entry_flow.FlowResultType.MENU
@@ -338,7 +338,7 @@ async def test_options_flow_update_source_entity_form(
 async def test_options_flow_update_source_entity_submit_remove_previous(
     hass: HomeAssistant, mock_config_entry: config_entries.ConfigEntry
 ) -> None:
-    """Test options flow: submit Update energy source with remove_previous_entities True (entities removed)."""
+    """[Happy] Options flow: submit Update energy source with remove_previous_entities True."""
     hass.states.async_set("sensor.today_load", "0")
     hass.states.async_set("sensor.today_import", "0")
     entry = mock_config_entry
@@ -372,7 +372,7 @@ async def test_options_flow_update_source_entity_submit_remove_previous(
 async def test_options_flow_update_source_entity_remove_previous_unchanged_source_shows_error(
     hass: HomeAssistant, mock_config_entry: config_entries.ConfigEntry
 ) -> None:
-    """Submit Update energy source with remove_previous_entities True but same source -> validation error."""
+    """[Unhappy] Update energy source with remove_previous True but same source -> validation error."""
     hass.states.async_set("sensor.today_load", "0")
     entry = mock_config_entry
     with patch(
@@ -403,7 +403,7 @@ async def test_options_flow_update_source_entity_remove_previous_unchanged_sourc
 async def test_options_flow_update_source_entity_submit_retain_previous(
     hass: HomeAssistant, mock_config_entry: config_entries.ConfigEntry
 ) -> None:
-    """Test options flow: submit Update energy source (same outcome, description-only step)."""
+    """[Happy] Options flow: submit Update energy source with retain previous entities."""
     hass.states.async_set("sensor.today_load", "0")
     hass.states.async_set("sensor.today_import", "0")
     entry = mock_config_entry

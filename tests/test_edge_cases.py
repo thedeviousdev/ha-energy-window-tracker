@@ -58,7 +58,7 @@ def _get_sensor_entity(hass: HomeAssistant, entry_id: str):
 
 @pytest.mark.asyncio
 async def test_windows_step_start_equals_end_rejected(hass: HomeAssistant) -> None:
-    """Start time equal to end time yields no valid window -> at_least_one_window."""
+    """[Unhappy] Start time equal to end time yields no valid window."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_USER},
@@ -83,7 +83,7 @@ async def test_windows_step_start_equals_end_rejected(hass: HomeAssistant) -> No
 
 @pytest.mark.asyncio
 async def test_windows_step_overlapping_ranges_rejected(hass: HomeAssistant) -> None:
-    """Second range starting before first range ends yields range_start_before_previous_end."""
+    """[Unhappy] Second range starting before first range ends yields range_start_before_previous_end."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_USER},
@@ -125,7 +125,7 @@ async def test_windows_step_overlapping_ranges_rejected(hass: HomeAssistant) -> 
 
 @pytest.mark.asyncio
 async def test_windows_step_empty_window_name_creates_entry(hass: HomeAssistant) -> None:
-    """Empty or whitespace window name is allowed; entry created with null/empty name."""
+    """[Happy] Empty or whitespace window name is allowed; entry created."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_USER},
@@ -152,7 +152,7 @@ async def test_windows_step_empty_window_name_creates_entry(hass: HomeAssistant)
 
 @pytest.mark.asyncio
 async def test_windows_step_cost_zero_stored(hass: HomeAssistant) -> None:
-    """Cost per kWh zero is stored as 0 (schema rejects negative in UI)."""
+    """[Happy] Cost per kWh zero is stored as 0."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_USER},
@@ -180,7 +180,7 @@ async def test_windows_step_cost_zero_stored(hass: HomeAssistant) -> None:
 async def test_options_add_window_invalid_time_range_shows_error(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
-    """Options flow Add window with start >= end shows window_start_after_end."""
+    """[Unhappy] Options Add window with start >= end shows window_start_after_end."""
     hass.states.async_set("sensor.today_load", "0")
     with patch(
         "custom_components.energy_window_tracker.sensor.Store.async_load",
@@ -211,7 +211,7 @@ async def test_options_add_window_invalid_time_range_shows_error(
 async def test_options_edit_window_invalid_time_range_shows_error(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
-    """Options flow Edit window with start >= end shows error and keeps form."""
+    """[Unhappy] Options Edit window with start >= end shows error and keeps form."""
     hass.states.async_set("sensor.today_load", "0")
     with patch(
         "custom_components.energy_window_tracker.sensor.Store.async_load",
@@ -247,7 +247,7 @@ async def test_options_edit_window_invalid_time_range_shows_error(
 async def test_options_manage_windows_with_default_empty_window_name(
     hass: HomeAssistant,
 ) -> None:
-    """When entry has window with default (empty) name, Manage windows -> select 'Window 1' opens edit form."""
+    """[Happy] Manage windows with default (empty) name: select 'Window 1' opens edit form."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Energy",
@@ -294,7 +294,7 @@ async def test_options_manage_windows_with_default_empty_window_name(
 async def test_options_manage_windows_empty_submit_returns_to_menu(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
-    """When there are no windows, Manage windows shows empty step; submit returns to menu."""
+    """[Unhappy] When there are no windows, Manage windows submit returns to menu."""
     hass.states.async_set("sensor.today_load", "0")
     # Start with one window; delete it so we have zero
     with patch(
@@ -329,7 +329,7 @@ async def test_options_manage_windows_empty_submit_returns_to_menu(
 async def test_options_add_window_add_another_then_save_two_ranges(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
-    """Options Add window: use Add another time range, submit with two ranges; entry has new window with 2 ranges."""
+    """[Happy] Options Add window: Add another time range, submit with two ranges; entry has new window with 2 ranges."""
     hass.states.async_set("sensor.today_load", "0")
     with patch(
         "custom_components.energy_window_tracker.sensor.Store.async_load",
@@ -388,7 +388,7 @@ async def test_options_add_window_add_another_then_save_two_ranges(
 async def test_options_manage_windows_shows_unique_names_only(
     hass: HomeAssistant,
 ) -> None:
-    """Manage windows list shows one option per unique window name (not per range)."""
+    """[Happy] Manage windows list shows one option per unique window name."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Multi",
@@ -433,7 +433,7 @@ async def test_options_manage_windows_shows_unique_names_only(
 async def test_options_edit_window_replaces_all_ranges_for_that_name(
     hass: HomeAssistant,
 ) -> None:
-    """Editing a window by name replaces all ranges for that name with the new set."""
+    """[Happy] Editing a window by name replaces all ranges for that name with the new set."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Edit Ranges",
@@ -503,7 +503,7 @@ async def test_options_edit_window_replaces_all_ranges_for_that_name(
 async def test_options_edit_window_add_another_time_range_then_save(
     hass: HomeAssistant,
 ) -> None:
-    """Edit window: add another time range, then save; both ranges are persisted."""
+    """[Happy] Edit window: add another time range, then save; both ranges are persisted."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Edit Add Range",
@@ -585,7 +585,7 @@ async def test_options_edit_window_add_another_time_range_then_save(
 async def test_options_update_source_empty_entity_rejected(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
-    """Options flow Update source with empty entity id is rejected (schema or flow)."""
+    """[Unhappy] Options Update source with empty entity id is rejected (schema or flow)."""
     from homeassistant.data_entry_flow import InvalidData
 
     hass.states.async_set("sensor.today_load", "0")
@@ -617,7 +617,7 @@ async def test_options_update_source_empty_entity_rejected(
 
 @pytest.mark.asyncio
 async def test_window_form_labels_built_from_start_time_end_time(hass: HomeAssistant) -> None:
-    """Labels for start/end fields are built from start_time/end_time + index (dynamic, any N)."""
+    """[Happy] Labels for start/end fields are built from start_time/end_time + index."""
     from custom_components.energy_window_tracker.config_flow import (
         _data_key,
         _get_window_form_labels,
@@ -645,7 +645,7 @@ async def test_window_form_labels_built_from_start_time_end_time(hass: HomeAssis
 
 @pytest.mark.asyncio
 async def test_window_form_schema_descriptions_match_dynamic_labels(hass: HomeAssistant) -> None:
-    """Schema field descriptions (shown as labels) are index + start_time/end_time for any number of slots."""
+    """[Happy] Schema field descriptions match dynamic labels for any number of slots."""
     from custom_components.energy_window_tracker.config_flow import (
         _build_single_window_multi_range_schema,
         _get_window_form_labels,
@@ -694,7 +694,7 @@ async def test_window_form_schema_descriptions_match_dynamic_labels(hass: HomeAs
 
 @pytest.mark.asyncio
 async def test_setup_entry_empty_sources_no_entities(hass: HomeAssistant) -> None:
-    """Config entry with empty sources list: setup succeeds, no sensors created."""
+    """[Unhappy] Config entry with empty sources list: setup succeeds, no sensors created."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Empty",
@@ -711,7 +711,7 @@ async def test_setup_entry_empty_sources_no_entities(hass: HomeAssistant) -> Non
 
 @pytest.mark.asyncio
 async def test_setup_entry_source_empty_windows_no_entities(hass: HomeAssistant) -> None:
-    """Config entry with source but empty windows: no sensors created."""
+    """[Unhappy] Config entry with source but empty windows: no sensors created."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="No Windows",
@@ -737,7 +737,7 @@ async def test_setup_entry_source_empty_windows_no_entities(hass: HomeAssistant)
 
 @pytest.mark.asyncio
 async def test_setup_entry_source_not_dict_skipped(hass: HomeAssistant) -> None:
-    """Config entry with source that is not a dict: skipped, no crash, no sensors."""
+    """[Unhappy] Config entry with source that is not a dict: skipped, no crash, no sensors."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Bad Source",
@@ -754,7 +754,7 @@ async def test_setup_entry_source_not_dict_skipped(hass: HomeAssistant) -> None:
 
 @pytest.mark.asyncio
 async def test_setup_entry_source_missing_source_entity_skipped(hass: HomeAssistant) -> None:
-    """Config entry with source dict missing source_entity: skipped, no sensors."""
+    """[Unhappy] Config entry with source dict missing source_entity: skipped, no sensors."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="No Entity",
@@ -782,7 +782,7 @@ async def test_setup_entry_source_missing_source_entity_skipped(hass: HomeAssist
 async def test_sensor_source_unknown_state_reports_unavailable(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
-    """When source entity state is 'unknown', sensor reports unavailable or unknown."""
+    """[Unhappy] When source entity state is 'unknown', sensor reports unavailable or unknown."""
     hass.states.async_set("sensor.today_load", "unknown")
     with patch(
         "custom_components.energy_window_tracker.sensor.Store.async_load",
@@ -802,7 +802,7 @@ async def test_sensor_source_unknown_state_reports_unavailable(
 async def test_sensor_source_unavailable_state_reports_unavailable(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
-    """When source entity state is 'unavailable', sensor reports unavailable or unknown."""
+    """[Unhappy] When source entity state is 'unavailable', sensor reports unavailable or unknown."""
     hass.states.async_set("sensor.today_load", "unavailable")
     with patch(
         "custom_components.energy_window_tracker.sensor.Store.async_load",
@@ -818,10 +818,33 @@ async def test_sensor_source_unavailable_state_reports_unavailable(
 
 
 @pytest.mark.asyncio
+async def test_sensor_source_numeric_state_reports_value(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """[Happy] When source entity has numeric state, sensor reports a numeric value (0 or computed)."""
+    hass.states.async_set("sensor.today_load", "5.25")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+    sensors = _get_tracker_sensors(hass, mock_config_entry.entry_id)
+    assert len(sensors) == 1
+    state = hass.states.get(sensors[0].entity_id)
+    assert state is not None
+    assert state.state not in ("unknown", "unavailable")
+    assert state.attributes.get("source_entity") == "sensor.today_load"
+    # Value is numeric (0 before/during window without snapshot, or computed)
+    float(state.state)
+
+
+@pytest.mark.asyncio
 async def test_setup_entry_multiple_windows_creates_multiple_sensors(
     hass: HomeAssistant,
 ) -> None:
-    """Config entry with two windows creates two sensor entities."""
+    """[Happy] Config entry with two windows creates two sensor entities."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Two Windows",
@@ -861,7 +884,7 @@ async def test_setup_entry_multiple_windows_creates_multiple_sensors(
 
 @pytest.mark.asyncio
 async def test_storage_load_none_no_crash(hass: HomeAssistant, mock_config_entry: ConfigEntry) -> None:
-    """Store.async_load returning None (no stored data) does not crash load()."""
+    """[Unhappy] Store.async_load returning None (no stored data) does not crash load()."""
     hass.states.async_set("sensor.today_load", "0")
     with patch(
         "custom_components.energy_window_tracker.sensor.Store.async_load",
@@ -877,8 +900,30 @@ async def test_storage_load_none_no_crash(hass: HomeAssistant, mock_config_entry
 
 
 @pytest.mark.asyncio
+async def test_storage_load_empty_dict_creates_entities(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """[Happy] When Store.async_load returns empty dict, setup creates entities and sensor has state."""
+    hass.states.async_set("sensor.today_load", "1.5")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+    sensors = _get_tracker_sensors(hass, mock_config_entry.entry_id)
+    assert len(sensors) == 1
+    state = hass.states.get(sensors[0].entity_id)
+    assert state is not None
+    assert state.attributes.get("source_entity") == "sensor.today_load"
+    assert "ranges" in state.attributes
+    assert state.state not in ("unknown", "unavailable")
+
+
+@pytest.mark.asyncio
 async def test_unload_when_not_loaded_no_crash(hass: HomeAssistant) -> None:
-    """Unloading an entry that was never set up does not crash."""
+    """[Unhappy] Unloading an entry that was never set up does not crash."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Never Setup",
@@ -896,10 +941,46 @@ async def test_unload_when_not_loaded_no_crash(hass: HomeAssistant) -> None:
 
 
 @pytest.mark.asyncio
+async def test_load_keeps_snapshots_when_stored_date_is_today(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """[Happy] When stored snapshot_date is today, load() keeps snapshots and they are used for get_window_value."""
+    noon_today = datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
+    today = noon_today.date().isoformat()
+    stored = {
+        "snapshot_date": today,
+        "windows": {"0": {"snapshot_start": 1.0, "snapshot_end": None}},
+    }
+    hass.states.async_set("sensor.today_load", "3.5")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value=stored,
+    ), patch(
+        "custom_components.energy_window_tracker.sensor.dt_util.now",
+        return_value=noon_today,
+    ):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+        entity = _get_sensor_entity(hass, mock_config_entry.entry_id)
+        assert entity is not None and hasattr(entity, "_data")
+        data = entity._data
+        assert data._snapshot_date == today
+        assert data._snapshots[0].snapshot_start == 1.0
+        value, status = data.get_window_value(data._windows[0])
+        assert value == 2.5
+        assert status == "during_window"
+        sensors = _get_tracker_sensors(hass, mock_config_entry.entry_id)
+        state = hass.states.get(sensors[0].entity_id)
+        assert state is not None and float(state.state) == 2.5
+        assert state.attributes.get("status") == "during_window"
+
+
+@pytest.mark.asyncio
 async def test_load_discards_snapshots_when_stored_date_not_today(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
-    """When stored snapshot_date is not today, load() clears snapshots and sets _snapshot_date to today."""
+    """[Unhappy] When stored snapshot_date is not today, load() clears snapshots and sets _snapshot_date to today."""
     # Use a fixed old date so it never equals the integration's "today" (dt_util.now() may differ from date.today())
     stored_date = "2020-01-01"
     stored = {
@@ -929,7 +1010,7 @@ async def test_load_discards_snapshots_when_stored_date_not_today(
 async def test_get_window_value_ignores_snapshots_when_date_not_today(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
-    """get_window_value treats snapshots as missing when _snapshot_date is not today."""
+    """[Unhappy] get_window_value treats snapshots as missing when _snapshot_date is not today."""
     hass.states.async_set("sensor.today_load", "5.0")
     with patch(
         "custom_components.energy_window_tracker.sensor.Store.async_load",
@@ -960,7 +1041,7 @@ async def test_get_window_value_ignores_snapshots_when_date_not_today(
 async def test_sensor_updates_after_load_with_yesterday_snapshots(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
-    """After load with yesterday's stored data, sensor uses same-day snapshot and value updates correctly."""
+    """[Unhappy→recovery] After load with yesterday's stored data, sensor uses same-day snapshot and value updates correctly."""
     stored_date = "2020-01-01"  # Fixed old date so load() clears snapshots
     stored = {
         "snapshot_date": stored_date,

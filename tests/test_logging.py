@@ -49,7 +49,7 @@ async def test_setup_and_unload_logging(
     mock_config_entry: ConfigEntry,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Setup and unload log entry_id and result."""
+    """[Happy] Setup and unload log entry_id and result."""
     for logger_name in COMPONENT_LOGGERS:
         caplog.set_level(logging.DEBUG, logger=logger_name)
     hass.states.async_set("sensor.today_load", "0")
@@ -75,7 +75,7 @@ async def test_config_flow_user_and_entity_selector_logging(
     hass: HomeAssistant,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """User step with valid source logs submitted keys, source_entity, and entity selector value."""
+    """[Happy] User step with valid source logs submitted keys and entity selector value."""
     for logger_name in COMPONENT_LOGGERS:
         caplog.set_level(logging.DEBUG, logger=logger_name)
     result = await hass.config_entries.flow.async_init(
@@ -100,7 +100,7 @@ async def test_config_flow_windows_create_entry_logging(
     hass: HomeAssistant,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Submitting windows step that creates entry logs 'creating entry'."""
+    """[Happy] Submitting windows step that creates entry logs 'creating entry'."""
     for logger_name in COMPONENT_LOGGERS:
         caplog.set_level(logging.DEBUG, logger=logger_name)
     result = await hass.config_entries.flow.async_init(
@@ -133,7 +133,7 @@ async def test_options_flow_save_logging(
     mock_config_entry: ConfigEntry,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Options flow save (e.g. update source) logs 'options flow: built options' and completes with CREATE_ENTRY."""
+    """[Happy] Options flow save (e.g. update source) logs and completes with CREATE_ENTRY."""
     for logger_name in COMPONENT_LOGGERS:
         caplog.set_level(logging.DEBUG, logger=logger_name)
     hass.states.async_set("sensor.today_load", "0")
@@ -169,7 +169,7 @@ async def test_sensor_setup_and_load_logging(
     mock_config_entry: ConfigEntry,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Sensor setup logs 'added N sensor(s)'; load() logs load message."""
+    """[Happy] Sensor setup logs 'added N sensor(s)'; load() logs load message."""
     for logger_name in COMPONENT_LOGGERS:
         caplog.set_level(logging.DEBUG, logger=logger_name)
     hass.states.async_set("sensor.today_load", "10.5")
@@ -192,7 +192,7 @@ async def test_sensor_get_source_value_non_numeric_logging(
     mock_config_entry: ConfigEntry,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """When source state is not numeric, get_source_value logs debug."""
+    """[Unhappy] When source state is not numeric, get_source_value logs."""
     for logger_name in COMPONENT_LOGGERS:
         caplog.set_level(logging.DEBUG, logger=logger_name)
     hass.states.async_set("sensor.today_load", "not_a_number")
@@ -231,7 +231,7 @@ async def test_sensor_midnight_reset_logging(
     mock_config_entry: ConfigEntry,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """_handle_midnight logs reset message."""
+    """[Happy] _handle_midnight logs reset message."""
     for logger_name in COMPONENT_LOGGERS:
         caplog.set_level(logging.DEBUG, logger=logger_name)
     hass.states.async_set("sensor.today_load", "0")
@@ -259,7 +259,7 @@ async def test_sensor_save_logging(
     mock_config_entry: ConfigEntry,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """When a snapshot is saved (e.g. window start), save() logs debug."""
+    """[Happy] When a snapshot is saved (e.g. window start), save() logs."""
     for logger_name in COMPONENT_LOGGERS:
         caplog.set_level(logging.DEBUG, logger=logger_name)
     hass.states.async_set("sensor.today_load", "5.0")
@@ -294,7 +294,7 @@ async def test_sensor_cost_calc_fail_logging(
     mock_config_entry_data: dict,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """When cost calculation fails in _update_value, we log debug."""
+    """[Unhappy] When cost calculation fails in _update_value, we log."""
     data = dict(mock_config_entry_data)
     data[CONF_SOURCES][0][CONF_WINDOWS][0]["cost_per_kwh"] = 0.15
     from pytest_homeassistant_custom_component.common import MockConfigEntry

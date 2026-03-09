@@ -602,8 +602,8 @@ async def test_options_update_source_empty_entity_rejected(
 
 
 @pytest.mark.asyncio
-async def test_window_form_labels_built_from_time_range_n(hass: HomeAssistant) -> None:
-    """Labels for start/end fields are built from time_range_n + start_suffix/end_suffix (dynamic, any N)."""
+async def test_window_form_labels_built_from_start_time_end_time(hass: HomeAssistant) -> None:
+    """Labels for start/end fields are built from start_time/end_time + index (dynamic, any N)."""
     from custom_components.energy_window_tracker.config_flow import (
         _data_key,
         _get_window_form_labels,
@@ -611,9 +611,8 @@ async def test_window_form_labels_built_from_time_range_n(hass: HomeAssistant) -
 
     step_id = "add_window"
     trans = {
-        _data_key(step_id, "time_range_n"): "Range #{n}",
-        _data_key(step_id, "start_suffix"): "Start time",
-        _data_key(step_id, "end_suffix"): "End time",
+        _data_key(step_id, "start_time"): "Start time",
+        _data_key(step_id, "end_time"): "End time",
     }
     with patch(
         "custom_components.energy_window_tracker.config_flow.async_get_translations",
@@ -622,17 +621,17 @@ async def test_window_form_labels_built_from_time_range_n(hass: HomeAssistant) -
     ):
         labels = await _get_window_form_labels(hass, "options", step_id, num_ranges=3)
 
-    assert labels["start"] == "Range #1 - Start time"
-    assert labels["end"] == "Range #1 - End time"
-    assert labels["start_1"] == "Range #2 - Start time"
-    assert labels["end_1"] == "Range #2 - End time"
-    assert labels["start_2"] == "Range #3 - Start time"
-    assert labels["end_2"] == "Range #3 - End time"
+    assert labels["start"] == "1 - Start time"
+    assert labels["end"] == "1 - End time"
+    assert labels["start_1"] == "2 - Start time"
+    assert labels["end_1"] == "2 - End time"
+    assert labels["start_2"] == "3 - Start time"
+    assert labels["end_2"] == "3 - End time"
 
 
 @pytest.mark.asyncio
 async def test_window_form_schema_descriptions_match_dynamic_labels(hass: HomeAssistant) -> None:
-    """Schema field descriptions (shown as labels) match time_range_n template for any number of slots."""
+    """Schema field descriptions (shown as labels) are index + start_time/end_time for any number of slots."""
     from custom_components.energy_window_tracker.config_flow import (
         _build_single_window_multi_range_schema,
         _get_window_form_labels,
@@ -640,9 +639,8 @@ async def test_window_form_schema_descriptions_match_dynamic_labels(hass: HomeAs
 
     step_id = "add_window"
     trans = {
-        f"step.{step_id}.data.time_range_n": "Range #{n}",
-        f"step.{step_id}.data.start_suffix": "Start time",
-        f"step.{step_id}.data.end_suffix": "End time",
+        f"step.{step_id}.data.start_time": "Start time",
+        f"step.{step_id}.data.end_time": "End time",
     }
     with patch(
         "custom_components.energy_window_tracker.config_flow.async_get_translations",
@@ -667,14 +665,14 @@ async def test_window_form_schema_descriptions_match_dynamic_labels(hass: HomeAs
         if getattr(key, "description", None) is not None:
             descriptions[key.schema] = key.description
 
-    assert descriptions.get("start") == "Range #1 - Start time"
-    assert descriptions.get("end") == "Range #1 - End time"
-    assert descriptions.get("start_1") == "Range #2 - Start time"
-    assert descriptions.get("end_1") == "Range #2 - End time"
-    assert descriptions.get("start_2") == "Range #3 - Start time"
-    assert descriptions.get("end_2") == "Range #3 - End time"
-    assert descriptions.get("start_3") == "Range #4 - Start time"
-    assert descriptions.get("end_3") == "Range #4 - End time"
+    assert descriptions.get("start") == "1 - Start time"
+    assert descriptions.get("end") == "1 - End time"
+    assert descriptions.get("start_1") == "2 - Start time"
+    assert descriptions.get("end_1") == "2 - End time"
+    assert descriptions.get("start_2") == "3 - Start time"
+    assert descriptions.get("end_2") == "3 - End time"
+    assert descriptions.get("start_3") == "4 - Start time"
+    assert descriptions.get("end_3") == "4 - End time"
 
 
 # ----- Sensor / init edge cases -----

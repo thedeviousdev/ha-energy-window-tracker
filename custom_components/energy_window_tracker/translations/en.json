@@ -19,9 +19,8 @@
           "source_name": "Friendly name",
           "window_name": "Window name",
           "cost_per_kwh": "Cost per kWh ($)",
-          "start_suffix": "Start time",
-          "end_suffix": "End time",
-          "time_range_n": "Range #{n}",
+          "start_time": "Start time",
+          "end_time": "End time",
           "add_another": "Add another time range"
         }
       },
@@ -31,9 +30,8 @@
         "data": {
           "window_name": "Window name",
           "cost_per_kwh": "Cost per kWh ($)",
-          "start_suffix": "Start time",
-          "end_suffix": "End time",
-          "time_range_n": "Range #{n}",
+          "start_time": "Start time",
+          "end_time": "End time",
           "add_another": "Add another time range"
         }
       },
@@ -42,9 +40,8 @@
         "data": {
           "window_name": "Window name",
           "cost_per_kwh": "Cost per kWh ($)",
-          "start_suffix": "Start time",
-          "end_suffix": "End time",
-          "time_range_n": "Range #{n}",
+          "start_time": "Start time",
+          "end_time": "End time",
           "add_another": "Add another time range",
           "delete_this_window": "❌ Delete?"
         }
@@ -111,9 +108,8 @@
         "data": {
           "window_name": "Window name",
           "cost_per_kwh": "Cost per kWh ($)",
-          "start_suffix": "Start time",
-          "end_suffix": "End time",
-          "time_range_n": "Range #{n}",
+          "start_time": "Start time",
+          "end_time": "End time",
           "add_another": "Add another time range"
         },
         "submit": "Save"
@@ -123,9 +119,8 @@
         "data": {
           "window_name": "Window name",
           "cost_per_kwh": "Cost per kWh ($)",
-          "start_suffix": "Start time",
-          "end_suffix": "End time",
-          "time_range_n": "Range #{n}",
+          "start_time": "Start time",
+          "end_time": "End time",
           "add_another": "Add another time range",
           "delete_this_window": "❌ Delete?"
         },

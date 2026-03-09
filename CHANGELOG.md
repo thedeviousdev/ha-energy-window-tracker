@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.26](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.25...v2.3.26) (2026-03-09)
+
+
+### Bug Fixes
+
+* **logging:** _MAIN_LOGGER for bootstrap; merge main ([#190](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/190)) ([4c67d9d](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/4c67d9d42981aa9f8e0bc56631879cee6f3e9e94))
+
 ## [2.3.25](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.24...v2.3.25) (2026-03-09)
 
 

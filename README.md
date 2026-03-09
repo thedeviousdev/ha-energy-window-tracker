@@ -72,17 +72,18 @@ Each integration entry has **one energy source** and can have **any number of ti
 **How do I get more detail when something fails?**  
 When the integration loads you should see a **WARNING** line in the log: `[energy_window_tracker] Integration loaded entry_id=...`. If you only see that line and no other messages from the integration:
 
-1. **Add the logger** to your `configuration.yaml` and restart Home Assistant:
+1. **Add the loggers** to your `configuration.yaml` and restart Home Assistant:
 
 ```yaml
 logger:
   logs:
     custom_components.energy_window_tracker: debug
+    custom_components.energy_window_tracker.config_flow: debug
 ```
 
-2. **Show this integration’s logs in the log viewer:** open **Settings → System → Logs**. The log viewer often shows only “Home Assistant core” by default. Use the **search** box and type `energy_window_tracker`, or clear the integration filter, so messages from this integration are visible.
+The first line enables the main integration logger (setup, options form submissions). The second enables the config/options flow logger so you see step-by-step messages when adding a new entry or using Configure.
 
-With the main logger at **debug** you'll see lines like `options: add_window form submitted` and `options: edit_window form submitted` when you use Configure. For full step-by-step debug in the config/options flows, also add `custom_components.energy_window_tracker.config_flow: debug` under `logs:`.
+2. **Show this integration’s logs in the log viewer:** open **Settings → System → Logs**. The log viewer often shows only “Home Assistant core” by default. Use the **search** box and type `energy_window_tracker`, or clear the integration filter, so messages from this integration are visible.
 
 For even more detail (step entry/exit, config reads), use **trace** by setting the level to `5`:
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.20](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.19...v2.3.20) (2026-03-09)
+
+
+### Bug Fixes
+
+* **logging:** add trace level, explicit logger names, and log viewer guidance ([#178](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/178)) ([bbb83c7](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/bbb83c72769ea5a7c009a7a2f447545db0d4c53a))
+
 ## [2.3.19](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.18...v2.3.19) (2026-03-09)
 
 

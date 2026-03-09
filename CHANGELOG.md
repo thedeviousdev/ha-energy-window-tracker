@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.21](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.20...v2.3.21) (2026-03-09)
+
+
+### Bug Fixes
+
+* **options:** persist extra time ranges when editing window with Add another ([#180](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/180)) ([ad22348](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/ad223486f854393de70de85130875ee38e0b9a58))
+
 ## [2.3.20](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.19...v2.3.20) (2026-03-09)
 
 

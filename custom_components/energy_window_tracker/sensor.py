@@ -40,10 +40,11 @@ from .const import (
     DOMAIN,
     STORAGE_KEY,
     STORAGE_VERSION,
+    TRACE,
     source_slug_from_entity_id,
 )
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger("custom_components.energy_window_tracker.sensor")
 
 
 @dataclass
@@ -81,6 +82,7 @@ def _time_str(h: int, m: int) -> str:
 def _parse_windows(config: dict[str, Any]) -> list[WindowConfig]:
     """Parse window config from entry data."""
     windows_data = config.get(CONF_WINDOWS) or []
+    _LOGGER.log(TRACE, "_parse_windows: len(windows_data)=%s", len(windows_data))
     windows = []
     for i, p in enumerate(windows_data):
         start_h, start_m = _parse_hhmm(p.get(CONF_WINDOW_START) or "11:00")
@@ -308,6 +310,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform (one or more sources under this entry)."""
+    _LOGGER.log(TRACE, "async_setup_entry: entry_id=%s", entry.entry_id)
     _LOGGER.debug("async_setup_entry: entry_id=%s, setting up sensor entities", entry.entry_id)
     config = {**entry.data, **entry.options}
     sources = _get_sources_from_config(config)
@@ -407,6 +410,12 @@ async def async_setup_entry(
             )
             registry.async_remove(entity_entry.entity_id)
 
+    _LOGGER.log(
+        TRACE,
+        "async_setup_entry: adding %s entities: %s",
+        len(all_sensors),
+        [s.unique_id for s in all_sensors],
+    )
     _LOGGER.debug(
         "async_setup_entry: adding %s entity(ies): %s",
         len(all_sensors),

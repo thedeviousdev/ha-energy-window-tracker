@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.16](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.15...v2.3.16) (2026-03-09)
+
+
+### Bug Fixes
+
+* **logging:** add INFO logs and explicit loggers so debug shows up ([#170](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/170)) ([ba9136a](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/ba9136aa91676d27a5388ce55196e8e3b0188dc4))
+
 ## [2.3.15](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.14...v2.3.15) (2026-03-09)
 
 

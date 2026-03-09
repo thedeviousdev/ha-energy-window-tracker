@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.29](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.28...v2.3.29) (2026-03-09)
+
+
+### Features
+
+* **i18n:** Range #N labels, form-label docs, translation keys for start/end ([#196](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/196)) ([e8b6eab](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/e8b6eabaeeef1c5ef8b5f5dfa87bfb84aee40257))
+
 ## [2.3.28](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.27...v2.3.28) (2026-03-09)
 
 

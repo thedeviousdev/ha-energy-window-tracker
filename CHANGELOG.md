@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.15](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.14...v2.3.15) (2026-03-09)
+
+
+### Bug Fixes
+
+* **translations:** pass [DOMAIN] to async_get_translations; add manif… ([#168](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/168)) ([783176f](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/783176fc720a9f9c5a697bf5df0e76db4a040d24))
+
 ## [2.3.14](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.13...v2.3.14) (2026-03-08)
 
 

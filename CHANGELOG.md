@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.30](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.29...v2.3.30) (2026-03-09)
+
+
+### Features
+
+* dynamic range labels only, chronological validation, README accuracy ([#198](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/198)) ([94219c8](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/94219c84da802a85168f34ff0ab074c27d96dc29))
+
 ## [2.3.29](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.28...v2.3.29) (2026-03-09)
 
 

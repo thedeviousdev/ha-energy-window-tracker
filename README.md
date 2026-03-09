@@ -82,6 +82,8 @@ logger:
 
 2. **Show this integration’s logs in the log viewer:** open **Settings → System → Logs**. The log viewer often shows only “Home Assistant core” by default. Use the **search** box and type `energy_window_tracker`, or clear the integration filter, so messages from this integration are visible.
 
+With the main logger at **debug** you'll see lines like `options: add_window form submitted` and `options: edit_window form submitted` when you use Configure. For full step-by-step debug in the config/options flows, also add `custom_components.energy_window_tracker.config_flow: debug` under `logs:`.
+
 For even more detail (step entry/exit, config reads), use **trace** by setting the level to `5`:
 
 ```yaml

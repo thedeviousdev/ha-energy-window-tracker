@@ -37,6 +37,8 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger("custom_components.energy_window_tracker.config_flow")
+# Main integration logger so options-flow logs appear when only this one is configured
+_MAIN_LOGGER = logging.getLogger("custom_components.energy_window_tracker")
 
 
 # Only accept HH:MM or H:MM so schema defaults are always valid
@@ -1290,6 +1292,11 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         labels = await _get_window_form_labels(self.hass, "options", "add_window", num_ranges=num_ranges)
 
         if user_input is not None and "start" in user_input:
+            _MAIN_LOGGER.debug(
+                "options: add_window form submitted (ranges=%s, add_another=%s)",
+                num_ranges,
+                bool(user_input.get("add_another")),
+            )
             w_name, cost, ranges_list = _collect_ranges_from_single_window_form(user_input, num_ranges)
             if not ranges_list:
                 first_start = _time_to_str(user_input.get("start") or "00:00")
@@ -1374,6 +1381,11 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 pass
 
         if user_input is not None:
+            _MAIN_LOGGER.debug(
+                "options: edit_window form submitted (window=%r, add_another=%s)",
+                edit_name,
+                bool(user_input.get("add_another")),
+            )
             if user_input.get("delete_this_window"):
                 _LOGGER.debug("options flow step edit_window: user chose delete_this_window")
                 self._delete_index = -1

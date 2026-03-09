@@ -60,13 +60,13 @@ async def test_setup_and_unload_logging(
     ):
         assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await hass.async_block_till_done()
-    assert "async_setup_entry: entry_id=" in _component_messages(caplog), "setup should log entry_id"
+    assert "async_setup_entry" in _component_messages(caplog) and "entry_id=" in _component_messages(caplog), "setup should log entry_id"
 
     caplog.clear()
     for logger_name in COMPONENT_LOGGERS:
         caplog.set_level(logging.DEBUG, logger=logger_name)
     assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
-    assert "async_unload_entry: entry_id=" in _component_messages(caplog)
+    assert "async_unload_entry" in _component_messages(caplog) and "entry_id=" in _component_messages(caplog)
     assert "ok=" in _component_messages(caplog)
 
 
@@ -182,7 +182,7 @@ async def test_sensor_setup_and_load_logging(
     await hass.async_block_till_done()
     messages = _component_messages(caplog)
     assert "added" in messages and "sensor(s)" in messages
-    assert "load:" in messages
+    assert "sensor: load" in messages
     assert "loaded" in messages or "no stored data" in messages
 
 
@@ -284,8 +284,8 @@ async def test_sensor_save_logging(
     entity._data._handle_window_start(window, dt_util.now())
     await hass.async_block_till_done()
     messages = _component_messages(caplog)
-    assert "Window" in messages and ("start:" in messages or "kWh" in messages)
-    assert "save:" in messages or "window(s)" in messages
+    assert ("window" in messages or "Window" in messages) and ("start" in messages or "kWh" in messages)
+    assert "sensor: save" in messages or "window(s)" in messages
 
 
 @pytest.mark.asyncio

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.19](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.18...v2.3.19) (2026-03-09)
+
+
+### Bug Fixes
+
+* **options:** manage windows when using default (empty) name; add entity-add debug logs ([#176](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/176)) ([61831f8](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/61831f8c6d688cc187e2e9f3d64ff2c3a656e969))
+
 ## [2.3.18](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.17...v2.3.18) (2026-03-09)
 
 

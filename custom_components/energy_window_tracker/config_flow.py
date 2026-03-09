@@ -82,31 +82,31 @@ def _time_to_str(t: Any) -> str:
 def _normalize_entity_selector_value(value: Any) -> str:
     """Normalize EntitySelector result to a single entity_id string (frontend may send list or dict)."""
     if value is None:
-        _MAIN_LOGGER.debug("entity selector value: None -> ''")
+        _MAIN_LOGGER.info("entity selector value: None -> ''")
         return ""
     if isinstance(value, str):
         out = value.strip()
-        _MAIN_LOGGER.debug("entity selector value: str %r -> %r", value[:80] if len(value) > 80 else value, out)
+        _MAIN_LOGGER.info("entity selector value: str %r -> %r", value[:80] if len(value) > 80 else value, out)
         return out
     if isinstance(value, list) and value:
         first = value[0]
         if isinstance(first, str):
             out = first.strip()
-            _MAIN_LOGGER.debug("entity selector value: list[str] -> %r", out)
+            _MAIN_LOGGER.info("entity selector value: list[str] -> %r", out)
             return out
         if isinstance(first, dict):
             out = _normalize_entity_selector_value(first.get("entity_id") or first.get("id") or "")
-            _MAIN_LOGGER.debug("entity selector value: list[dict] -> %r", out)
+            _MAIN_LOGGER.info("entity selector value: list[dict] -> %r", out)
             return out
         out = str(first).strip()
-        _MAIN_LOGGER.debug("entity selector value: list[other] -> %r", out)
+        _MAIN_LOGGER.info("entity selector value: list[other] -> %r", out)
         return out
     if isinstance(value, dict):
         out = _normalize_entity_selector_value(value.get("entity_id") or value.get("id") or "")
-        _MAIN_LOGGER.debug("entity selector value: dict -> %r", out)
+        _MAIN_LOGGER.info("entity selector value: dict -> %r", out)
         return out
     out = str(value).strip() if value else ""
-    _MAIN_LOGGER.debug("entity selector value: type %s -> %r", type(value).__name__, out)
+    _MAIN_LOGGER.info("entity selector value: type %s -> %r", type(value).__name__, out)
     return out
 
 
@@ -393,17 +393,17 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Step 1: energy source only."""
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "config flow step user: user_input=%s",
             "submitted" if user_input is not None else "show form",
         )
         if user_input is not None:
             raw = user_input.get(CONF_SOURCE_ENTITY)
-            _MAIN_LOGGER.debug("config flow step user: submitted keys=%s", list(user_input.keys()))
-            _MAIN_LOGGER.debug("config flow step user: raw source_entity type=%s", type(raw).__name__)
+            _MAIN_LOGGER.info("config flow step user: submitted keys=%s", list(user_input.keys()))
+            _MAIN_LOGGER.info("config flow step user: raw source_entity type=%s", type(raw).__name__)
             self._source_entity = _normalize_entity_selector_value(raw)
             if not self._source_entity:
-                _MAIN_LOGGER.debug("config flow step user: empty source_entity after normalize")
+                _MAIN_LOGGER.info("config flow step user: empty source_entity after normalize")
                 return self.async_show_form(
                     step_id="user",
                     data_schema=_build_step_user_schema(),
@@ -418,20 +418,20 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     errors={"base": "source_already_in_use"},
                     description_placeholders={"entry_title": existing.title or defaults["entry_title"]},
                 )
-            _MAIN_LOGGER.debug("config flow step user: source_entity=%r, proceeding to windows", self._source_entity)
-            _MAIN_LOGGER.debug(
+            _MAIN_LOGGER.info("config flow step user: source_entity=%r, proceeding to windows", self._source_entity)
+            _MAIN_LOGGER.info(
                 "config: user - selected source_entity=%r, showing windows form",
                 self._source_entity,
             )
             try:
                 return await self.async_step_windows()
             except Exception as err:
-                _MAIN_LOGGER.debug(
+                _MAIN_LOGGER.info(
                     "config flow step user: async_step_windows failed: %s", err, exc_info=True
                 )
                 raise
 
-        _MAIN_LOGGER.debug("config flow: showing form step_id=user")
+        _MAIN_LOGGER.info("config flow: showing form step_id=user")
         return self.async_show_form(
             step_id="user",
             data_schema=_build_step_user_schema(),
@@ -443,7 +443,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Step 2: source name, one window name, one cost, N time ranges. 'Add another' for more ranges."""
         errors: dict[str, str] = {}
         source_entity = _normalize_entity_selector_value(self._source_entity) or ""
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "config flow step windows: user_input=%s, source_entity=%r",
             "submitted" if user_input is not None else "None (show form)",
             source_entity,
@@ -454,11 +454,11 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         labels = await _get_window_form_labels(self.hass, "config", "windows", num_ranges=num_ranges)
 
         if user_input is not None:
-            _MAIN_LOGGER.debug(
+            _MAIN_LOGGER.info(
                 "config: windows - form submitted (add_another=%s)",
                 bool(user_input.get("add_another")),
             )
-            _MAIN_LOGGER.debug("config flow step windows: submitted keys=%s", list(user_input.keys()))
+            _MAIN_LOGGER.info("config flow step windows: submitted keys=%s", list(user_input.keys()))
             # After "Add another time range" the form has more slots; use that count when collecting
             num_ranges_for_collect = (
                 len(self._initial_ranges) + 1 if self._initial_ranges else max(num_ranges, 1)
@@ -488,6 +488,10 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 return self.async_show_form(step_id="windows", data_schema=schema, errors=errors)
             if user_input.get("add_another"):
+                _MAIN_LOGGER.info(
+                    "config: windows - add another time range (total %s)",
+                    len(ranges) + 1,
+                )
                 self._initial_window_name = w_name or ""
                 self._initial_window_cost = cost
                 self._initial_ranges = [{"start": s, "end": e} for s, e in ranges]
@@ -532,13 +536,13 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {CONF_WINDOW_NAME: w_name or None, CONF_WINDOW_START: s, CONF_WINDOW_END: e, CONF_COST_PER_KWH: cost}
                 for s, e in ranges
             ]
-            _MAIN_LOGGER.debug(
+            _MAIN_LOGGER.info(
                 "config flow step windows: creating entry title=%r, source=%r, windows=%s",
                 entry_title,
                 source_entity,
                 [w.get(CONF_WINDOW_NAME) for w in windows],
             )
-            _MAIN_LOGGER.debug(
+            _MAIN_LOGGER.info(
                 "config: creating entry - title=%r source=%r %s window(s)",
                 entry_title,
                 source_entity,
@@ -557,7 +561,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 },
             )
 
-        _MAIN_LOGGER.debug("config flow: showing form step_id=windows")
+        _MAIN_LOGGER.info("config flow: showing form step_id=windows")
         schema = _build_single_window_multi_range_schema(
             labels,
             default_name,
@@ -574,17 +578,17 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Show Configure Energy Window Tracker menu (after first window, before Done)."""
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "config flow step configure_menu: user_input=%s",
             "submitted" if user_input is not None else "show menu",
         )
         if user_input is not None:
             next_step = user_input.get("next_step_id")
-            _MAIN_LOGGER.debug("config flow step configure_menu: user selected next_step_id=%s", next_step)
+            _MAIN_LOGGER.info("config flow step configure_menu: user selected next_step_id=%s", next_step)
             if next_step == "done":
                 defaults = await _get_config_defaults(self.hass)
                 title = self._pending_entry_title or defaults["entry_title"]
-                _MAIN_LOGGER.debug("config flow configure_menu: creating entry title=%r", title)
+                _MAIN_LOGGER.info("config flow configure_menu: creating entry title=%r", title)
                 return self.async_create_entry(
                     title=title,
                     data={CONF_SOURCES: self._pending_sources or []},
@@ -595,7 +599,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _async_show_configure_menu(self) -> config_entries.FlowResult:
         """Show the Configure Energy Window Tracker menu (config flow)."""
-        _MAIN_LOGGER.debug("config flow: showing menu step_id=configure_menu")
+        _MAIN_LOGGER.info("config flow: showing menu step_id=configure_menu")
         return {
             "type": data_entry_flow.FlowResultType.MENU,
             "flow_id": self.flow_id,
@@ -611,7 +615,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Create entry and finish (from Configure menu Done)."""
         defaults = await _get_config_defaults(self.hass)
         title = self._pending_entry_title or defaults["entry_title"]
-        _MAIN_LOGGER.debug("config flow step done: creating entry title=%r", title)
+        _MAIN_LOGGER.info("config flow step done: creating entry title=%r", title)
         return self.async_create_entry(
             title=title,
             data={CONF_SOURCES: self._pending_sources or []},
@@ -621,7 +625,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Add a window (config flow, pending entry). One name, one cost, N ranges; Add another for more."""
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "config flow step add_window: user_input=%s",
             "submitted" if user_input is not None else "show form",
         )
@@ -650,6 +654,10 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 return self.async_show_form(step_id="add_window", data_schema=schema, errors=errors)
             if user_input.get("add_another"):
+                _MAIN_LOGGER.info(
+                    "config: add_window - add another time range (total %s)",
+                    len(ranges) + 1,
+                )
                 self._pending_add_name = w_name or ""
                 self._pending_add_cost = cost
                 self._pending_add_ranges = [{"start": s, "end": e} for s, e in ranges]
@@ -675,7 +683,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._pending_add_name = ""
             self._pending_add_cost = 0.0
             return await self.async_step_configure_menu(None)
-        _MAIN_LOGGER.debug("config flow: showing form step_id=add_window")
+        _MAIN_LOGGER.info("config flow: showing form step_id=add_window")
         schema = _build_single_window_multi_range_schema(
             labels, None, self._pending_add_name, self._pending_add_cost, self._pending_add_ranges,
             include_add_another=True, include_delete=False,
@@ -698,7 +706,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Manage windows list (config flow, pending entry). One option per unique window name."""
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "config flow step list_windows: user_input=%s",
             "submitted" if user_input is not None else "show list",
         )
@@ -712,11 +720,11 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             unique_names = _unique_window_names(windows)
             if 0 <= idx < len(unique_names):
                 self._edit_window_name = unique_names[idx]
-                _MAIN_LOGGER.debug("config flow step list_windows: user selected window %r", self._edit_window_name)
+                _MAIN_LOGGER.info("config flow step list_windows: user selected window %r", self._edit_window_name)
             return await self.async_step_edit_window(None)
         unique_names = _unique_window_names(windows)
         options = [{"value": str(i), "label": unique_names[i]} for i in range(len(unique_names))]
-        _MAIN_LOGGER.debug("config flow: showing form step_id=list_windows")
+        _MAIN_LOGGER.info("config flow: showing form step_id=list_windows")
         schema = vol.Schema({
             vol.Required("window_index"): selector.SelectSelector(
                 selector.SelectSelectorConfig(options=options),
@@ -728,7 +736,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Edit one named window (all its ranges). Config flow, pending entry."""
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "config flow step edit_window: edit_name=%r user_input=%s",
             getattr(self, "_edit_window_name", None),
             "submitted" if user_input is not None else "show form",
@@ -771,6 +779,11 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 return self.async_show_form(step_id="edit_window", data_schema=schema, errors={"base": err})
             if user_input.get("add_another"):
+                _MAIN_LOGGER.info(
+                    "config: edit_window - add another time range for %r (total %s)",
+                    edit_name,
+                    len(ranges_list) + 1,
+                )
                 self._pending_add_name = w_name or ""
                 self._pending_add_cost = cost_val
                 self._pending_add_ranges = [{"start": s, "end": e} for s, e in ranges_list]
@@ -789,7 +802,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 new_windows.append({CONF_WINDOW_NAME: name, CONF_WINDOW_START: s, CONF_WINDOW_END: e, CONF_COST_PER_KWH: cost_val})
             self._pending_sources[0][CONF_WINDOWS] = new_windows
             return await self.async_step_configure_menu(None)
-        _MAIN_LOGGER.debug("config flow: showing form step_id=edit_window")
+        _MAIN_LOGGER.info("config flow: showing form step_id=edit_window")
         schema = _build_single_window_multi_range_schema(
             labels, None, edit_name, cost, ranges_data, include_add_another=True, include_delete=True,
             num_slots=num_ranges,
@@ -800,7 +813,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Update energy source (config flow, pending entry)."""
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "config flow step source_entity: user_input=%s",
             "submitted" if user_input is not None else "show form",
         )
@@ -822,7 +835,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         current_name = str(src.get(CONF_NAME) or "") or _get_entity_friendly_name(
             self.hass, source_entity, defaults["window_name"]
         )
-        _MAIN_LOGGER.debug("config flow: showing form step_id=source_entity")
+        _MAIN_LOGGER.info("config flow: showing form step_id=source_entity")
         return self.async_show_form(
             step_id="source_entity",
             data_schema=_build_source_entity_schema(source_entity, current_name),
@@ -843,9 +856,9 @@ def _get_sources_from_entry(entry: config_entries.ConfigEntry) -> list[dict[str,
     raw = current.get(CONF_SOURCES)
     if isinstance(raw, list):
         out = list(raw)
-        _MAIN_LOGGER.debug("_get_sources_from_entry: entry_id=%s len(sources)=%s", entry.entry_id, len(out))
+        _MAIN_LOGGER.info("_get_sources_from_entry: entry_id=%s len(sources)=%s", entry.entry_id, len(out))
         return out
-    _MAIN_LOGGER.debug("_get_sources_from_entry: entry_id=%s no list, returning []", entry.entry_id)
+    _MAIN_LOGGER.info("_get_sources_from_entry: entry_id=%s no list, returning []", entry.entry_id)
     return []
 
 
@@ -1036,7 +1049,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         }
         # Merge with existing options so we don't drop other keys (e.g. _retain_entity_unique_ids)
         new_options = {**(self._config_entry.options or {}), CONF_SOURCES: [new_source]}
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "options flow: built options entry_id=%s source_entity=%r windows=%s",
             self._config_entry.entry_id,
             source_entity,
@@ -1050,7 +1063,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         """
         result = self.async_create_entry(title=None, data=options)
         result["options"] = options
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "options flow: returning CreateEntry with data and options (entry_id=%s)",
             self._config_entry.entry_id,
         )
@@ -1060,14 +1073,14 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Configure Energy Window Tracker: show menu (Add new window, Manage windows, Update energy source)."""
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "options flow opened (entry_id=%s); enable debug for this integration to see step details",
             self._config_entry.entry_id,
         )
         try:
             return await self._async_step_manage_impl(user_input)
         except Exception as err:
-            _MAIN_LOGGER.debug(
+            _MAIN_LOGGER.info(
                 "Energy Window Tracker options flow failed: %s",
                 err,
                 exc_info=True,
@@ -1083,7 +1096,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         title: str | None = None,
     ) -> config_entries.FlowResult:
         """Show a menu step. menu_options: list of step_ids or dict step_id->label. Optional description/title override translation."""
-        _MAIN_LOGGER.debug("options flow: showing menu step_id=%s", step_id)
+        _MAIN_LOGGER.info("options flow: showing menu step_id=%s", step_id)
         result: config_entries.FlowResult = {
             "type": data_entry_flow.FlowResultType.MENU,
             "flow_id": self.flow_id,
@@ -1103,7 +1116,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Show Configure Energy Window Tracker menu."""
-        _MAIN_LOGGER.debug("options flow step init: showing main menu")
+        _MAIN_LOGGER.info("options flow step init: showing main menu")
         self._get_current_source()
         menu_options = _build_init_menu_options()
         return self._async_show_menu(
@@ -1117,7 +1130,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Show Manage windows: one option per unique window name; select then edit that name's ranges."""
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "options flow step manage_windows: user_input=%s",
             "submitted" if user_input is not None else "show list",
         )
@@ -1126,7 +1139,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         if not windows:
             if user_input is not None:
                 return await self._async_step_manage_impl(None)
-            _MAIN_LOGGER.debug("options flow: showing form step_id=manage_windows_empty")
+            _MAIN_LOGGER.info("options flow: showing form step_id=manage_windows_empty")
             return self.async_show_form(
                 step_id="manage_windows_empty",
                 data_schema=vol.Schema({}),
@@ -1137,11 +1150,11 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             unique_names = _unique_window_names(windows)
             if 0 <= idx < len(unique_names):
                 self._edit_window_name = unique_names[idx]
-                _MAIN_LOGGER.debug("options flow step manage_windows: user selected window %r", self._edit_window_name)
+                _MAIN_LOGGER.info("options flow step manage_windows: user selected window %r", self._edit_window_name)
             return await self.async_step_edit_window(None)
         unique_names = _unique_window_names(windows)
         options = [{"value": str(i), "label": unique_names[i]} for i in range(len(unique_names))]
-        _MAIN_LOGGER.debug("options flow: showing form step_id=manage_windows (%s windows)", len(unique_names))
+        _MAIN_LOGGER.info("options flow: showing form step_id=manage_windows (%s windows)", len(unique_names))
         schema = vol.Schema({
             vol.Required("window_index"): selector.SelectSelector(
                 selector.SelectSelectorConfig(options=options),
@@ -1176,11 +1189,11 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Confirm deletion of the window at _delete_index, then return to menu."""
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "options: confirm_delete - %s",
             "confirmed" if user_input is not None else "show form",
         )
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "options flow step confirm_delete: user_input=%s",
             "confirmed" if user_input is not None else "show confirm",
         )
@@ -1192,8 +1205,8 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             return await self._async_step_manage_windows_impl(None)
         window_name = (windows[idx].get(CONF_WINDOW_NAME) or "").strip() or f"Window {idx + 1}"
         if user_input is not None:
-            _MAIN_LOGGER.debug("options: window deleted - %r", window_name)
-            _MAIN_LOGGER.debug("options flow step confirm_delete: deleting window %r", window_name)
+            _MAIN_LOGGER.info("options: window deleted - %r", window_name)
+            _MAIN_LOGGER.info("options flow step confirm_delete: deleting window %r", window_name)
             new_windows = [w for i, w in enumerate(windows) if i != idx]
             current_name = src.get(CONF_NAME) or None
             options_to_persist = await self._save_source(source_entity, new_windows, source_name=current_name)
@@ -1202,7 +1215,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             if entity_id := registry.async_get_entity_id("sensor", DOMAIN, unique_id):
                 registry.async_remove(entity_id)
             return self._async_create_options_entry(options_to_persist)
-        _MAIN_LOGGER.debug("options flow: showing form step_id=confirm_delete")
+        _MAIN_LOGGER.info("options flow: showing form step_id=confirm_delete")
         return self.async_show_form(
             step_id="confirm_delete",
             data_schema=vol.Schema({}),
@@ -1219,7 +1232,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Change the source entity (form). Checkbox controls whether to remove previous entities."""
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "options flow step source_entity: user_input=%s",
             "submitted" if user_input is not None else "show form",
         )
@@ -1301,7 +1314,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 del self._retain_ids_after_save
             return self._async_create_options_entry(options_to_persist)
 
-        _MAIN_LOGGER.debug("options flow: showing form step_id=source_entity")
+        _MAIN_LOGGER.info("options flow: showing form step_id=source_entity")
         return self.async_show_form(
             step_id="source_entity",
             data_schema=_build_source_entity_schema(
@@ -1313,7 +1326,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Add a new window: one name, one cost, N ranges; Add another for more."""
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "options flow step add_window: user_input=%s",
             "submitted" if user_input is not None else "show form",
         )
@@ -1324,7 +1337,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         labels = await _get_window_form_labels(self.hass, "options", "add_window", num_ranges=num_ranges)
 
         if user_input is not None and "start" in user_input:
-            _MAIN_LOGGER.debug(
+            _MAIN_LOGGER.info(
                 "options: add_window - form submitted (ranges=%s, add_another=%s)",
                 num_ranges,
                 bool(user_input.get("add_another")),
@@ -1343,8 +1356,8 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 )
                 return self.async_show_form(step_id="add_window", data_schema=schema, errors={"base": err})
             if user_input.get("add_another"):
-                _MAIN_LOGGER.debug(
-                    "options: add_window - adding another time range (total %s)",
+                _MAIN_LOGGER.info(
+                    "options: add_window - add another time range (total %s)",
                     len(ranges_list) + 1,
                 )
                 self._pending_add_name = w_name or ""
@@ -1371,10 +1384,10 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             self._pending_add_ranges = []
             self._pending_add_name = ""
             self._pending_add_cost = 0.0
-            _MAIN_LOGGER.debug("options flow step add_window: saved new window, %s total", len(windows))
+            _MAIN_LOGGER.info("options flow step add_window: saved new window, %s total", len(windows))
             return self._async_create_options_entry(options_to_persist)
 
-        _MAIN_LOGGER.debug("options flow: showing form step_id=add_window")
+        _MAIN_LOGGER.info("options flow: showing form step_id=add_window")
         schema = _build_single_window_multi_range_schema(
             labels, None, self._pending_add_name, self._pending_add_cost, self._pending_add_ranges,
             include_add_another=True, include_delete=False,
@@ -1386,7 +1399,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Edit one named window (all its ranges). One name, one cost, N ranges; Add another for more."""
-        _MAIN_LOGGER.debug(
+        _MAIN_LOGGER.info(
             "options flow step edit_window: edit_name=%r user_input=%s",
             getattr(self, "_edit_window_name", None),
             "submitted" if user_input is not None else "show form",
@@ -1411,14 +1424,14 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 pass
 
         if user_input is not None:
-            _MAIN_LOGGER.debug(
+            _MAIN_LOGGER.info(
                 "options: edit_window - form submitted (window=%r, add_another=%s)",
                 edit_name,
                 bool(user_input.get("add_another")),
             )
             if user_input.get("delete_this_window"):
-                _MAIN_LOGGER.debug("options: edit_window - deleting window %r", edit_name)
-                _MAIN_LOGGER.debug("options flow step edit_window: user chose delete_this_window")
+                _MAIN_LOGGER.info("options: edit_window - deleting window %r", edit_name)
+                _MAIN_LOGGER.info("options flow step edit_window: user chose delete_this_window")
                 self._delete_index = -1
                 raw_to_remove = (same_name[0].get(CONF_WINDOW_NAME) or "").strip()
                 new_windows = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "").strip() != raw_to_remove]
@@ -1453,8 +1466,8 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 )
                 return self.async_show_form(step_id="edit_window", data_schema=schema, errors={"base": err})
             if user_input.get("add_another"):
-                _MAIN_LOGGER.debug(
-                    "options: edit_window - adding another time range for %r (total %s)",
+                _MAIN_LOGGER.info(
+                    "options: edit_window - add another time range for %r (total %s)",
                     edit_name,
                     len(ranges_list) + 1,
                 )
@@ -1479,14 +1492,14 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             self._pending_add_ranges = []
             self._pending_add_name = ""
             self._pending_add_cost = 0.0
-            _MAIN_LOGGER.debug(
+            _MAIN_LOGGER.info(
                 "options flow step edit_window: saved window %r with %s time range(s)",
                 edit_name,
                 len(ranges_list),
             )
             return self._async_create_options_entry(options_to_persist)
 
-        _MAIN_LOGGER.debug("options flow: showing form step_id=edit_window")
+        _MAIN_LOGGER.info("options flow: showing form step_id=edit_window")
         schema = _build_single_window_multi_range_schema(
             labels, None, edit_name, cost, ranges_data, include_add_another=True, include_delete=True,
             num_slots=num_ranges,

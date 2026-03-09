@@ -569,7 +569,7 @@ async def test_window_form_labels_built_from_time_range_n(hass: HomeAssistant) -
 
     step_id = "add_window"
     trans = {
-        _data_key(step_id, "time_range_n"): "Time range #{n}",
+        _data_key(step_id, "time_range_n"): "Range #{n}",
         _data_key(step_id, "start_suffix"): "Start time",
         _data_key(step_id, "end_suffix"): "End time",
     }
@@ -580,12 +580,12 @@ async def test_window_form_labels_built_from_time_range_n(hass: HomeAssistant) -
     ):
         labels = await _get_window_form_labels(hass, "options", step_id, num_ranges=3)
 
-    assert labels["start"] == "Time range #1 - Start time"
-    assert labels["end"] == "Time range #1 - End time"
-    assert labels["start_1"] == "Time range #2 - Start time"
-    assert labels["end_1"] == "Time range #2 - End time"
-    assert labels["start_2"] == "Time range #3 - Start time"
-    assert labels["end_2"] == "Time range #3 - End time"
+    assert labels["start"] == "Range #1 - Start time"
+    assert labels["end"] == "Range #1 - End time"
+    assert labels["start_1"] == "Range #2 - Start time"
+    assert labels["end_1"] == "Range #2 - End time"
+    assert labels["start_2"] == "Range #3 - Start time"
+    assert labels["end_2"] == "Range #3 - End time"
 
 
 @pytest.mark.asyncio
@@ -598,7 +598,7 @@ async def test_window_form_schema_descriptions_match_dynamic_labels(hass: HomeAs
 
     step_id = "add_window"
     trans = {
-        f"step.{step_id}.data.time_range_n": "Time range #{n}",
+        f"step.{step_id}.data.time_range_n": "Range #{n}",
         f"step.{step_id}.data.start_suffix": "Start time",
         f"step.{step_id}.data.end_suffix": "End time",
     }
@@ -625,14 +625,14 @@ async def test_window_form_schema_descriptions_match_dynamic_labels(hass: HomeAs
         if getattr(key, "description", None) is not None:
             descriptions[key.schema] = key.description
 
-    assert descriptions.get("start") == "Time range #1 - Start time"
-    assert descriptions.get("end") == "Time range #1 - End time"
-    assert descriptions.get("start_1") == "Time range #2 - Start time"
-    assert descriptions.get("end_1") == "Time range #2 - End time"
-    assert descriptions.get("start_2") == "Time range #3 - Start time"
-    assert descriptions.get("end_2") == "Time range #3 - End time"
-    assert descriptions.get("start_3") == "Time range #4 - Start time"
-    assert descriptions.get("end_3") == "Time range #4 - End time"
+    assert descriptions.get("start") == "Range #1 - Start time"
+    assert descriptions.get("end") == "Range #1 - End time"
+    assert descriptions.get("start_1") == "Range #2 - Start time"
+    assert descriptions.get("end_1") == "Range #2 - End time"
+    assert descriptions.get("start_2") == "Range #3 - Start time"
+    assert descriptions.get("end_2") == "Range #3 - End time"
+    assert descriptions.get("start_3") == "Range #4 - Start time"
+    assert descriptions.get("end_3") == "Range #4 - End time"
 
 
 # ----- Sensor / init edge cases -----

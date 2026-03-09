@@ -73,7 +73,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for tests and CI.
 The source must be a **daily cumulative total** that resets (e.g. at midnight).
 
 **What happens if Home Assistant restarts during a window?**  
-The start snapshot is restored from storage, and the end snapshot is taken at the window end time. Your data is preserved.
+The start snapshot is restored from storage, and the end snapshot is taken at the window end time. Your data is preserved. Stored snapshots are only used if their date matches today; if you load or restart after midnight, yesterday’s snapshots are discarded so daily-reset sources (e.g. “today” energy) show correct same-day values.
 
 **How many sources and windows can I have?**  
 Each integration entry has **one energy source** and can have **any number of time windows**. You can create multiple entries but they cannot use the same sensor.

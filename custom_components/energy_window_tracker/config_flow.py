@@ -973,6 +973,10 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Configure Energy Window Tracker: show menu (Add new window, Manage windows, Update energy source)."""
+        _LOGGER.info(
+            "options flow opened (entry_id=%s); enable debug for this integration to see step details",
+            self._config_entry.entry_id,
+        )
         try:
             return await self._async_step_manage_impl(user_input)
         except Exception as err:

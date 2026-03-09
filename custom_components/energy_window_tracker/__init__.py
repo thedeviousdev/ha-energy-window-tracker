@@ -17,7 +17,8 @@ PLATFORMS = ["sensor"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Energy Window Tracker from a config entry."""
-    _MAIN_LOGGER.info("init: Integration loaded - entry_id=%s", entry.entry_id)
+    logging.warning("[energy_window_tracker] Integration loaded entry_id=%s", entry.entry_id)
+    _MAIN_LOGGER.warning("init: Integration loaded - entry_id=%s", entry.entry_id)
     hass.data.setdefault(DOMAIN, {})
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(async_update_options))
@@ -26,15 +27,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry (called when entry is deleted or reloaded)."""
-    _MAIN_LOGGER.info("init: Entry removed/unloading - entry_id=%s", entry.entry_id)
+    logging.warning("[energy_window_tracker] Entry removed/unloading entry_id=%s", entry.entry_id)
+    _MAIN_LOGGER.warning("init: Entry removed/unloading - entry_id=%s", entry.entry_id)
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id, None)
-    _MAIN_LOGGER.info("init: async_unload_entry - entry_id=%s ok=%s", entry.entry_id, unload_ok)
+    _MAIN_LOGGER.warning("init: async_unload_entry - entry_id=%s ok=%s", entry.entry_id, unload_ok)
     return unload_ok
 
 
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Update options."""
-    _MAIN_LOGGER.info("init: async_update_options - entry_id=%s, reloading", entry.entry_id)
+    _MAIN_LOGGER.warning("init: async_update_options - entry_id=%s, reloading", entry.entry_id)
     await hass.config_entries.async_reload(entry.entry_id)

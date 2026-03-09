@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.18](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.17...v2.3.18) (2026-03-09)
+
+
+### Bug Fixes
+
+* **logging:** add debug log for every config/options flow step and sensor interaction ([#174](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/174)) ([f8b0cc4](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/f8b0cc451f8f0a21eeeabbbc58d8e4d0a6d517b1))
+
 ## [2.3.17](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.16...v2.3.17) (2026-03-09)
 
 

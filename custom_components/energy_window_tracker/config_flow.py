@@ -194,7 +194,7 @@ async def _get_window_form_labels(
     num_ranges: int | None = None,
 ) -> dict[str, str]:
     """Load translated labels for the single-window form (one name, one cost, N start/end pairs).
-    When num_ranges > 1, grouping uses 'Time range #1', 'Time range #2'; start/end are just 'Start time' / 'End time'.
+    Builds "Time range #N - Start time" and "Time range #N - End time" for each slot.
     Builds labels for exactly num_ranges slots (no maximum). Adds _range_0, _range_1, ... for grouping.
     """
     lang = hass.config.language or "en"
@@ -207,22 +207,22 @@ async def _get_window_form_labels(
         k = _data_key(step_id, key)
         if k in trans:
             labels[key] = trans[k]
-    # Suffix strings for building; time_range_n template for "Time range #N — Start time" / "End time"
+    # Suffix strings for building; time_range_n template for "Time range #N - Start time" / "End time"
     time_range_n_t = trans.get(_data_key(step_id, "time_range_n")) or "Time range #{n}"
     start_suffix = trans.get(_data_key(step_id, "start_suffix")) or labels.get("start") or "Start time"
     end_suffix = trans.get(_data_key(step_id, "end_suffix")) or labels.get("end") or "End time"
     n_r = num_ranges if num_ranges is not None else 1
-    # Build all start/end labels from time_range_n template: "Time range #N — Start time" / "End time"
+    # Build all start/end labels: "Time range #N - Start time" / "Time range #N - End time"
     if num_ranges is not None:
         for i in range(num_ranges):
             labels[f"_range_{i}"] = time_range_n_t.format(n=i + 1)
             heading = time_range_n_t.format(n=i + 1)
             if i == 0:
-                labels["start"] = f"{heading} — {start_suffix}"
-                labels["end"] = f"{heading} — {end_suffix}"
+                labels["start"] = f"{heading} - {start_suffix}"
+                labels["end"] = f"{heading} - {end_suffix}"
             else:
-                labels[f"start_{i}"] = f"{heading} — {start_suffix}"
-                labels[f"end_{i}"] = f"{heading} — {end_suffix}"
+                labels[f"start_{i}"] = f"{heading} - {start_suffix}"
+                labels[f"end_{i}"] = f"{heading} - {end_suffix}"
     else:
         for i in range(1, n_r):
             labels[f"start_{i}"] = start_suffix
@@ -241,7 +241,7 @@ def _build_single_window_multi_range_schema(
     num_slots: int | None = None,
 ) -> vol.Schema:
     """Build schema: one window name, one cost, then start/end for range 0, start_1/end_1, ...
-    First pair labeled 'Start time'/'End time'; additional pairs 'Start time 1'/'End time 1', etc.
+    Labels: "Time range #1 - Start time", "Time range #1 - End time", "Time range #2 - Start time", etc.
     If num_slots is set, that many range slots are shown; otherwise max(1, len(ranges)).
     """
     schema_dict: dict[Any, Any] = {}
@@ -270,7 +270,7 @@ def _build_single_window_multi_range_schema(
             r = ranges[i] if i < len(ranges) else {}
             s_def = _time_to_str(r.get("start") or DEFAULT_WINDOW_START)
             e_def = _time_to_str(r.get("end") or DEFAULT_WINDOW_END)
-        # Labels built from time_range_n in _get_window_form_labels: "Time range #N — Start time" / "End time"
+        # Labels built from time_range_n in _get_window_form_labels: "Time range #N - Start time" / "End time"
         start_desc = labels.get(sk) or labels.get("start") or "Start time"
         end_desc = labels.get(ek) or labels.get("end") or "End time"
         schema_dict[
@@ -423,6 +423,10 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     description_placeholders={"entry_title": existing.title or defaults["entry_title"]},
                 )
             _LOGGER.info("config flow step user: source_entity=%r, proceeding to windows", self._source_entity)
+            _MAIN_LOGGER.debug(
+                "config: user selected source_entity=%r, showing windows form",
+                self._source_entity,
+            )
             try:
                 return await self.async_step_windows()
             except Exception as err:
@@ -453,24 +457,37 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         labels = await _get_window_form_labels(self.hass, "config", "windows", num_ranges=num_ranges)
 
         if user_input is not None:
+            _MAIN_LOGGER.debug(
+                "config: windows form submitted (add_another=%s)",
+                bool(user_input.get("add_another")),
+            )
             _LOGGER.debug("config flow step windows: submitted keys=%s", list(user_input.keys()))
-            w_name, cost, ranges = _collect_ranges_from_single_window_form(user_input, num_ranges)
+            # After "Add another time range" the form has more slots; use that count when collecting
+            num_ranges_for_collect = (
+                len(self._initial_ranges) + 1 if self._initial_ranges else max(num_ranges, 1)
+            )
+            w_name, cost, ranges = _collect_ranges_from_single_window_form(
+                user_input, num_ranges_for_collect
+            )
             if not ranges:
                 first_start = _time_to_str(user_input.get("start") or "00:00")
                 first_end = _time_to_str(user_input.get("end") or "00:00")
                 errors["base"] = "window_start_after_end" if first_start >= first_end else "at_least_one_window"
                 ranges_for_form = [{"start": user_input.get("start") or "00:00", "end": user_input.get("end") or "00:00"}]
-                for i in range(1, num_ranges):
+                for i in range(1, num_ranges_for_collect):
                     ranges_for_form.append({"start": user_input.get(f"start_{i}") or "00:00", "end": user_input.get(f"end_{i}") or "00:00"})
+                err_labels = await _get_window_form_labels(
+                    self.hass, "config", "windows", num_ranges=num_ranges_for_collect
+                )
                 schema = _build_single_window_multi_range_schema(
-                    labels,
+                    err_labels,
                     user_input.get("source_name") or default_name,
                     w_name or "",
                     cost,
                     ranges_for_form,
                     include_add_another=True,
                     include_delete=False,
-                    num_slots=num_ranges,
+                    num_slots=num_ranges_for_collect,
                 )
                 return self.async_show_form(step_id="windows", data_schema=schema, errors=errors)
             if user_input.get("add_another"):
@@ -495,15 +512,18 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             entry_title = source_name or defaults["entry_title"]
             existing = _entry_using_source_entity(self.hass, source_entity, exclude_entry_id=None)
             if existing is not None:
+                err_labels = await _get_window_form_labels(
+                    self.hass, "config", "windows", num_ranges=num_ranges_for_collect
+                )
                 schema = _build_single_window_multi_range_schema(
-                    labels,
+                    err_labels,
                     user_input.get("source_name") or default_name,
                     w_name or "",
                     cost,
                     [{"start": s, "end": e} for s, e in ranges],
                     include_add_another=True,
                     include_delete=False,
-                    num_slots=num_ranges,
+                    num_slots=num_ranges_for_collect,
                 )
                 return self.async_show_form(
                     step_id="windows",
@@ -520,6 +540,12 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 entry_title,
                 source_entity,
                 [w.get(CONF_WINDOW_NAME) for w in windows],
+            )
+            _MAIN_LOGGER.debug(
+                "config: creating entry title=%r source=%r %s window(s)",
+                entry_title,
+                source_entity,
+                len(windows),
             )
             return self.async_create_entry(
                 title=entry_title,
@@ -608,17 +634,23 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         labels = await _get_window_form_labels(self.hass, "config", "add_window", num_ranges=num_ranges)
 
         if user_input is not None and "start" in user_input:
-            w_name, cost, ranges = _collect_ranges_from_single_window_form(user_input, num_ranges)
+            # After "Add another time range" the form has more slots; use that count when collecting
+            num_ranges_for_collect = (
+                len(self._pending_add_ranges) + 1 if self._pending_add_ranges else max(num_ranges, 1)
+            )
+            w_name, cost, ranges = _collect_ranges_from_single_window_form(
+                user_input, num_ranges_for_collect
+            )
             if not ranges:
                 first_start = _time_to_str(user_input.get("start") or "00:00")
                 first_end = _time_to_str(user_input.get("end") or "00:00")
                 errors = {"base": "window_start_after_end" if first_start >= first_end else "at_least_one_window"}
                 ranges_for_form = [{"start": user_input.get("start") or "00:00", "end": user_input.get("end") or "00:00"}]
-                for i in range(1, num_ranges):
+                for i in range(1, num_ranges_for_collect):
                     ranges_for_form.append({"start": user_input.get(f"start_{i}") or "00:00", "end": user_input.get(f"end_{i}") or "00:00"})
                 schema = _build_single_window_multi_range_schema(
                     labels, None, w_name or "", cost, ranges_for_form, include_add_another=True, include_delete=False,
-                    num_slots=num_ranges,
+                    num_slots=num_ranges_for_collect,
                 )
                 return self.async_show_form(step_id="add_window", data_schema=schema, errors=errors)
             if user_input.get("add_another"):

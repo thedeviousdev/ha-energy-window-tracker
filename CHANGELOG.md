@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.22](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.21...v2.3.22) (2026-03-09)
+
+
+### Bug Fixes
+
+* **logging:** shorten bootstrap message, options form logs at debug, README ([#182](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/182)) ([1477e22](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/1477e224a0acaff8c3e394eef3300b6c868ebc25))
+
 ## [2.3.21](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.20...v2.3.21) (2026-03-09)
 
 

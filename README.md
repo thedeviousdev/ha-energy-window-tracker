@@ -54,6 +54,15 @@ Each **window name** is one sensor (all time ranges with that name are summed). 
 | `status`        | before_window, during_window, after_window, etc. |
 | `cost`          | Energy × cost per kWh (if set), 2 decimals. Use e.g. `{{ state_attr('sensor.x', 'cost') }}` |
 
+## Form labels (translations)
+
+The text next to each field in the config/options flow (e.g. **Range #1 - Start time**, **Window name**) comes from:
+
+- **strings.json** and **translations/en.json** under `config.step.<step_id>.data` and `options.step.<step_id>.data`. Each step that has the window form (windows, add_window, edit_window) has entries for `start`, `end`, `time_range_n` ("Range #{n}"), `start_suffix`, `end_suffix`, etc.
+- **Python** in `config_flow.py`: `_get_window_form_labels()` loads those strings and builds labels like "Range #2 - Start time" for the second range; those are passed as the schema field `description`, which the UI can use as the label.
+
+So to change the "Range #N" wording, edit `time_range_n` in the JSON files and the fallback in `_get_window_form_labels()`.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for tests and CI.

@@ -1,4 +1,27 @@
-"""Config flow for Energy Window Tracker."""
+"""Config flow for Energy Window Tracker.
+
+Where translated strings show
+-----------------------------
+Form field labels (e.g. "Range #1 - Start time") appear in the UI when you:
+- Add an entry: step "Add window" (windows) and "Add new window" (add_window)
+- Configure an entry: "Add new window" and "Edit window" (add_window, edit_window)
+
+Labels are resolved in two ways:
+1. Schema description: we build labels in _get_window_form_labels() and pass them
+   as description= to vol.Optional() in _build_single_window_multi_range_schema().
+   The frontend may use this as the label next to each field.
+2. Translation keys: the frontend may look up config.step.<step_id>.data.<field>
+   or options.step.<step_id>.data.<field> from the integration's translations.
+
+Translation files:
+- strings.json (default/fallback): config.step.windows.data, config.step.add_window.data,
+  config.step.edit_window.data, options.step.add_window.data, options.step.edit_window.data.
+- translations/en.json: same structure for English.
+- For the first range, "start" and "end" are set to "Range #1 - Start time" / "End time".
+- For more ranges, labels like "Range #2 - Start time" are built in Python (time_range_n
+  template + start_suffix/end_suffix) and only used as schema description (no JSON key
+  for start_1, start_2, ...).
+"""
 
 from __future__ import annotations
 
@@ -191,7 +214,7 @@ async def _get_window_form_labels(
     num_ranges: int | None = None,
 ) -> dict[str, str]:
     """Load translated labels for the single-window form (one name, one cost, N start/end pairs).
-    Builds "Time range #N - Start time" and "Time range #N - End time" for each slot.
+    Builds "Range #N - Start time" and "Range #N - End time" for each slot.
     Builds labels for exactly num_ranges slots (no maximum). Adds _range_0, _range_1, ... for grouping.
     """
     lang = hass.config.language or "en"
@@ -204,12 +227,12 @@ async def _get_window_form_labels(
         k = _data_key(step_id, key)
         if k in trans:
             labels[key] = trans[k]
-    # Suffix strings for building; time_range_n template for "Time range #N - Start time" / "End time"
-    time_range_n_t = trans.get(_data_key(step_id, "time_range_n")) or "Time range #{n}"
+    # Suffix strings for building; time_range_n template for "Range #N - Start time" / "End time"
+    time_range_n_t = trans.get(_data_key(step_id, "time_range_n")) or "Range #{n}"
     start_suffix = trans.get(_data_key(step_id, "start_suffix")) or labels.get("start") or "Start time"
     end_suffix = trans.get(_data_key(step_id, "end_suffix")) or labels.get("end") or "End time"
     n_r = num_ranges if num_ranges is not None else 1
-    # Build all start/end labels: "Time range #N - Start time" / "Time range #N - End time"
+    # Build all start/end labels: "Range #N - Start time" / "Range #N - End time"
     if num_ranges is not None:
         for i in range(num_ranges):
             labels[f"_range_{i}"] = time_range_n_t.format(n=i + 1)
@@ -238,7 +261,7 @@ def _build_single_window_multi_range_schema(
     num_slots: int | None = None,
 ) -> vol.Schema:
     """Build schema: one window name, one cost, then start/end for range 0, start_1/end_1, ...
-    Labels: "Time range #1 - Start time", "Time range #1 - End time", "Time range #2 - Start time", etc.
+    Labels: "Range #1 - Start time", "Range #1 - End time", "Range #2 - Start time", etc.
     If num_slots is set, that many range slots are shown; otherwise max(1, len(ranges)).
     """
     schema_dict: dict[Any, Any] = {}
@@ -267,7 +290,7 @@ def _build_single_window_multi_range_schema(
             r = ranges[i] if i < len(ranges) else {}
             s_def = _time_to_str(r.get("start") or DEFAULT_WINDOW_START)
             e_def = _time_to_str(r.get("end") or DEFAULT_WINDOW_END)
-        # Labels built from time_range_n in _get_window_form_labels: "Time range #N - Start time" / "End time"
+        # Labels built from time_range_n in _get_window_form_labels: "Range #N - Start time" / "End time"
         start_desc = labels.get(sk) or labels.get("start") or "Start time"
         end_desc = labels.get(ek) or labels.get("end") or "End time"
         schema_dict[

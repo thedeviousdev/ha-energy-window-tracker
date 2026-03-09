@@ -17,7 +17,7 @@ PLATFORMS = ["sensor"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Energy Window Tracker from a config entry."""
-    # Log once via root logger so it shows even when log viewer is filtered to "core"
+    # Log once so it shows when integration logger is enabled (e.g. at debug)
     _MAIN_LOGGER.warning("init: Integration loaded - entry_id=%s", entry.entry_id)
     _MAIN_LOGGER.debug("init: Integration loaded - entry_id=%s", entry.entry_id)
     _MAIN_LOGGER.debug("init: async_setup_entry - entry_id=%s", entry.entry_id)

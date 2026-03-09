@@ -188,6 +188,53 @@ async def test_options_edit_window_invalid_time_range_shows_error(
 
 
 @pytest.mark.asyncio
+async def test_options_manage_windows_with_default_empty_window_name(
+    hass: HomeAssistant,
+) -> None:
+    """When entry has window with default (empty) name, Manage windows -> select 'Window 1' opens edit form."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Energy",
+        data={
+            CONF_SOURCES: [
+                {
+                    CONF_SOURCE_ENTITY: "sensor.today_load",
+                    CONF_NAME: "Energy",
+                    CONF_WINDOWS: [
+                        {
+                            CONF_WINDOW_NAME: "",
+                            CONF_WINDOW_START: "11:00",
+                            CONF_WINDOW_END: "14:00",
+                        }
+                    ],
+                }
+            ]
+        },
+        options={},
+        entry_id="test_entry_empty_name",
+    )
+    entry.add_to_hass(hass)
+    hass.states.async_set("sensor.today_load", "0")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ):
+        opts = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        opts["flow_id"],
+        {"next_step_id": "list_windows"},
+    )
+    # List shows "Window 1" (fallback for empty name); select it
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {"window_index": "0"},
+    )
+    # Should reach edit_window (not bounce back to list)
+    assert result["step_id"] == "edit_window"
+
+
+@pytest.mark.asyncio
 async def test_options_manage_windows_empty_submit_returns_to_menu(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:

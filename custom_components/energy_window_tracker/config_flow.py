@@ -704,7 +704,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         edit_name = self._edit_window_name
         if not edit_name:
             return await self.async_step_configure_menu(None)
-        same_name = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "").strip() == edit_name]
+        same_name = _windows_matching_edit_name(windows, edit_name)
         if not same_name:
             return await self.async_step_configure_menu(None)
         num_ranges = len(same_name)
@@ -719,7 +719,8 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             if user_input.get("delete_this_window"):
-                new_windows = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "").strip() != edit_name]
+                raw_to_remove = (same_name[0].get(CONF_WINDOW_NAME) or "").strip()
+                new_windows = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "").strip() != raw_to_remove]
                 self._pending_sources[0][CONF_WINDOWS] = new_windows
                 return await self.async_step_configure_menu(None)
             num_ranges = max(num_ranges, 1)
@@ -748,7 +749,8 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 return self.async_show_form(step_id="edit_window", data_schema=schema)
             name = (w_name or "").strip() or None
-            new_windows = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "").strip() != edit_name]
+            raw_to_replace = (same_name[0].get(CONF_WINDOW_NAME) or "").strip()
+            new_windows = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "").strip() != raw_to_replace]
             for s, e in ranges_list:
                 new_windows.append({CONF_WINDOW_NAME: name, CONF_WINDOW_START: s, CONF_WINDOW_END: e, CONF_COST_PER_KWH: cost_val})
             self._pending_sources[0][CONF_WINDOWS] = new_windows
@@ -860,6 +862,21 @@ def _unique_window_names(windows: list[dict[str, Any]]) -> list[str]:
             seen.add(name)
             out.append(name)
     return out
+
+
+def _windows_matching_edit_name(windows: list[dict[str, Any]], edit_name: str) -> list[dict[str, Any]]:
+    """Return windows whose effective display name matches edit_name (same logic as _unique_window_names).
+    When user selects 'Window 1' from the list, edit_name is 'Window 1' but stored name may be ''; this
+    finds the correct windows to edit."""
+    seen: set[str] = set()
+    for i, w in enumerate(windows):
+        raw = (w.get(CONF_WINDOW_NAME) or "").strip()
+        effective = raw or f"Window {i + 1}"
+        if effective not in seen:
+            seen.add(effective)
+            if effective == edit_name:
+                return [ww for ww in windows if (ww.get(CONF_WINDOW_NAME) or "").strip() == raw]
+    return []
 
 
 def _window_display_name(w: dict[str, Any], index: int, fallback_template: str) -> str:
@@ -1328,7 +1345,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         edit_name = self._edit_window_name
         if not edit_name:
             return await self._async_step_manage_windows_impl(None)
-        same_name = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "").strip() == edit_name]
+        same_name = _windows_matching_edit_name(windows, edit_name)
         if not same_name:
             return await self._async_step_manage_windows_impl(None)
         num_ranges = len(same_name)
@@ -1345,7 +1362,8 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
             if user_input.get("delete_this_window"):
                 _LOGGER.debug("options flow step edit_window: user chose delete_this_window")
                 self._delete_index = -1
-                new_windows = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "").strip() != edit_name]
+                raw_to_remove = (same_name[0].get(CONF_WINDOW_NAME) or "").strip()
+                new_windows = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "").strip() != raw_to_remove]
                 current_name = src.get(CONF_NAME) or None
                 options_to_persist = await self._save_source(source_entity, new_windows, source_name=current_name)
                 return self._async_create_options_entry(options_to_persist)
@@ -1375,7 +1393,8 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 )
                 return self.async_show_form(step_id="edit_window", data_schema=schema)
             name = (w_name or "").strip() or None
-            new_windows = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "").strip() != edit_name]
+            raw_to_replace = (same_name[0].get(CONF_WINDOW_NAME) or "").strip()
+            new_windows = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "").strip() != raw_to_replace]
             for s, e in ranges_list:
                 new_windows.append({CONF_WINDOW_NAME: name, CONF_WINDOW_START: s, CONF_WINDOW_END: e, CONF_COST_PER_KWH: cost_val})
             current_name = src.get(CONF_NAME) or None

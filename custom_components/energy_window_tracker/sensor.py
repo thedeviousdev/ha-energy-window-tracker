@@ -308,6 +308,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform (one or more sources under this entry)."""
+    _LOGGER.debug("async_setup_entry: entry_id=%s, setting up sensor entities", entry.entry_id)
     config = {**entry.data, **entry.options}
     sources = _get_sources_from_config(config)
     if not sources:
@@ -361,6 +362,12 @@ async def async_setup_entry(
             by_name.setdefault(w.name, []).append(w)
 
         for name_index, (window_name, ranges) in enumerate(by_name.items()):
+            _LOGGER.debug(
+                "async_setup_entry: creating sensor source=%r window=%r ranges=%s",
+                source_entity,
+                window_name,
+                len(ranges),
+            )
             sensor = WindowEnergySensor(
                 hass=hass,
                 entry_id=entry.entry_id,
@@ -400,6 +407,11 @@ async def async_setup_entry(
             )
             registry.async_remove(entity_entry.entity_id)
 
+    _LOGGER.debug(
+        "async_setup_entry: adding %s entity(ies): %s",
+        len(all_sensors),
+        [s._window_name for s in all_sensors],
+    )
     _LOGGER.info(
         "async_setup_entry: entry_id=%s, added %s sensor(s)",
         entry.entry_id,

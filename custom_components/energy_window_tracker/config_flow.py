@@ -32,10 +32,11 @@ from .const import (
     DOMAIN,
     STORAGE_KEY,
     STORAGE_VERSION,
+    TRACE,
     source_slug_from_entity_id,
 )
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger("custom_components.energy_window_tracker.config_flow")
 
 
 # Only accept HH:MM or H:MM so schema defaults are always valid
@@ -393,6 +394,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Step 1: energy source only."""
+        _LOGGER.log(TRACE, "async_step_user: user_input=%s", user_input)
         _LOGGER.debug(
             "config flow step user: user_input=%s",
             "submitted" if user_input is not None else "show form",
@@ -435,6 +437,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Step 2: source name, one window name, one cost, N time ranges. 'Add another' for more ranges."""
+        _LOGGER.log(TRACE, "async_step_windows: user_input=%s", user_input)
         errors: dict[str, str] = {}
         source_entity = _normalize_entity_selector_value(self._source_entity) or ""
         _LOGGER.info(
@@ -593,6 +596,7 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Add a window (config flow, pending entry). One name, one cost, N ranges; Add another for more."""
+        _LOGGER.log(TRACE, "async_step_add_window: user_input=%s", user_input)
         _LOGGER.debug(
             "config flow step add_window: user_input=%s",
             "submitted" if user_input is not None else "show form",
@@ -808,7 +812,10 @@ def _get_sources_from_entry(entry: config_entries.ConfigEntry) -> list[dict[str,
     current = {**entry.data, **(entry.options or {})}
     raw = current.get(CONF_SOURCES)
     if isinstance(raw, list):
-        return list(raw)
+        out = list(raw)
+        _LOGGER.log(TRACE, "_get_sources_from_entry: entry_id=%s len(sources)=%s", entry.entry_id, len(out))
+        return out
+    _LOGGER.log(TRACE, "_get_sources_from_entry: entry_id=%s no list, returning []", entry.entry_id)
     return []
 
 
@@ -1023,6 +1030,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Configure Energy Window Tracker: show menu (Add new window, Manage windows, Update energy source)."""
+        _LOGGER.log(TRACE, "options async_step_init: user_input=%s", user_input)
         _LOGGER.info(
             "options flow opened (entry_id=%s); enable debug for this integration to see step details",
             self._config_entry.entry_id,
@@ -1065,6 +1073,7 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Show Configure Energy Window Tracker menu."""
+        _LOGGER.log(TRACE, "_async_step_manage_impl: user_input=%s", user_input)
         _LOGGER.debug("options flow step init: showing main menu")
         self._get_current_source()
         menu_options = _build_init_menu_options()

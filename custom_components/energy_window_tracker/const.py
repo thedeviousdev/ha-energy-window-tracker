@@ -1,6 +1,14 @@
 """Constants for the Energy Window Tracker integration."""
 
+import logging
+
 DOMAIN = "energy_window_tracker"
+
+# Log level below DEBUG (10) for very verbose trace; set logger level to 5 to enable
+TRACE = 5
+if not hasattr(logging, "TRACE"):
+    logging.TRACE = TRACE  # type: ignore[attr-defined]
+    logging.addLevelName(TRACE, "TRACE")
 
 CONF_SOURCE_ENTITY = "source_entity"
 CONF_SOURCES = "sources"

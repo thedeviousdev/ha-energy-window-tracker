@@ -70,7 +70,9 @@ The start snapshot is restored from storage, and the end snapshot is taken at th
 Each integration entry has **one energy source** and can have **any number of time windows**. You can create multiple entries but they cannot use the same sensor.
 
 **How do I get more detail when something fails?**  
-When the integration loads you should see a **WARNING** line in the log: `Energy Window Tracker loaded entry_id=...`. If you never see that, the integration may be loading from a different path or an old copy. To see **debug** messages (config flow steps, entity selector, etc.), add this to your `configuration.yaml` and restart Home Assistant:
+When the integration loads you should see a **WARNING** line in the log: `[energy_window_tracker] Integration loaded entry_id=...`. If you only see that line and no other messages from the integration:
+
+1. **Add the logger** to your `configuration.yaml` and restart Home Assistant:
 
 ```yaml
 logger:
@@ -78,4 +80,12 @@ logger:
     custom_components.energy_window_tracker: debug
 ```
 
-Then open **Settings → System → Logs** (or your log file) and filter or search for `energy_window_tracker`.
+2. **Show this integration’s logs in the log viewer:** open **Settings → System → Logs**. The log viewer often shows only “Home Assistant core” by default. Use the **search** box and type `energy_window_tracker`, or clear the integration filter, so messages from this integration are visible.
+
+For even more detail (step entry/exit, config reads), use **trace** by setting the level to `5`:
+
+```yaml
+logger:
+  logs:
+    custom_components.energy_window_tracker: 5
+```

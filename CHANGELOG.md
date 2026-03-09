@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.24](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.23...v2.3.24) (2026-03-09)
+
+
+### Bug Fixes
+
+* **logging:** document both loggers in README, log on entry removed ([#186](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/186)) ([c761aba](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/c761aba9838b3a5c8fde4545ed78f1ea5222b56c))
+
 ## [2.3.23](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.22...v2.3.23) (2026-03-09)
 
 

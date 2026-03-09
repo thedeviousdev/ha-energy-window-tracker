@@ -70,7 +70,7 @@ The start snapshot is restored from storage, and the end snapshot is taken at th
 Each integration entry has **one energy source** and can have **any number of time windows**. You can create multiple entries but they cannot use the same sensor.
 
 **How do I get more detail when something fails?**  
-All integration logging is at **debug** level, so nothing appears until you enable it:
+When the integration loads or unloads you’ll see a **WARNING** line: `init: Integration loaded - entry_id=...` (or `init: Entry removed/unloading - ...`). All other logging is at **debug** level. To see config flow, options, and sensor messages:
 
 1. **Add the logger** to your `configuration.yaml` and restart Home Assistant:
 

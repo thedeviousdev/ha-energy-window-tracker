@@ -446,6 +446,7 @@ class WindowEnergySensor(RestoreSensor):
 
     async def async_added_to_hass(self) -> None:
         """Restore state and register listeners."""
+        _LOGGER.debug("sensor %r: added to hass (entity_id=%s)", self._window_name, self.entity_id)
         await super().async_added_to_hass()
 
         # Friendly name is window name only (entity_id already includes source from __init__ name).
@@ -512,6 +513,10 @@ class WindowEnergySensor(RestoreSensor):
     @callback
     def _handle_data_update(self) -> None:
         """Update value when source entity state or snapshot data changes; write only if value/status changed."""
+        _LOGGER.debug(
+            "sensor %r: data update (source or snapshot changed)",
+            self._window_name,
+        )
         old_value = self._attr_native_value
         old_status = self._last_status
         self._update_value()

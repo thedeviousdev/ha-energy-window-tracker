@@ -40,11 +40,10 @@ from .const import (
     DOMAIN,
     STORAGE_KEY,
     STORAGE_VERSION,
-    TRACE,
     source_slug_from_entity_id,
 )
 
-_LOGGER = logging.getLogger("custom_components.energy_window_tracker.sensor")
+_MAIN_LOGGER = logging.getLogger("custom_components.energy_window_tracker")
 
 
 @dataclass
@@ -82,7 +81,7 @@ def _time_str(h: int, m: int) -> str:
 def _parse_windows(config: dict[str, Any]) -> list[WindowConfig]:
     """Parse window config from entry data."""
     windows_data = config.get(CONF_WINDOWS) or []
-    _LOGGER.log(TRACE, "_parse_windows: len(windows_data)=%s", len(windows_data))
+    _MAIN_LOGGER.debug("_parse_windows: len(windows_data)=%s", len(windows_data))
     windows = []
     for i, p in enumerate(windows_data):
         start_h, start_m = _parse_hhmm(p.get(CONF_WINDOW_START) or "11:00")
@@ -148,8 +147,8 @@ class WindowData:
         try:
             return float(state.state)
         except (ValueError, TypeError):
-            _LOGGER.debug(
-                "get_source_value: %s state not numeric: %r",
+            _MAIN_LOGGER.debug(
+                "sensor: get_source_value - %s state not numeric: %r",
                 self._source_entity,
                 state.state if state else None,
             )
@@ -233,9 +232,9 @@ class WindowData:
                         snapshot_end=sd.get("snapshot_end"),
                     )
                     loaded += 1
-            _LOGGER.debug("load: %s snapshot_date=%s loaded %s window(s)", self._source_entity, self._snapshot_date, loaded)
+            _MAIN_LOGGER.debug("sensor: load - %s snapshot_date=%s loaded %s window(s)", self._source_entity, self._snapshot_date, loaded)
         else:
-            _LOGGER.debug("load: %s no stored data", self._source_entity)
+            _MAIN_LOGGER.debug("sensor: load - %s no stored data", self._source_entity)
 
     async def save(self) -> None:
         """Persist snapshots to storage."""
@@ -249,7 +248,7 @@ class WindowData:
         await self._store.async_save(
             {"windows": snapshots_data, "snapshot_date": self._snapshot_date}
         )
-        _LOGGER.debug("save: %s snapshot_date=%s %s window(s)", self._source_entity, self._snapshot_date, len(snapshots_data))
+        _MAIN_LOGGER.debug("sensor: save - %s snapshot_date=%s %s window(s)", self._source_entity, self._snapshot_date, len(snapshots_data))
 
     def _handle_window_start(self, window: WindowConfig, now: datetime) -> None:
         """Snapshot at window start."""
@@ -261,7 +260,7 @@ class WindowData:
                 snapshot_start=value,
                 snapshot_end=None,
             )
-            _LOGGER.debug("Window '%s' start: %.3f kWh", window.name, value)
+            _MAIN_LOGGER.debug("sensor: window '%s' start - %.3f kWh", window.name, value)
             self._schedule_save()
         self._notify_update()
 
@@ -274,13 +273,13 @@ class WindowData:
                 snapshot_start=snap.snapshot_start,
                 snapshot_end=value,
             )
-            _LOGGER.debug("Window '%s' end: %.3f kWh", window.name, value)
+            _MAIN_LOGGER.debug("sensor: window '%s' end - %.3f kWh", window.name, value)
             self._schedule_save()
         self._notify_update()
 
     def _handle_midnight(self, now: datetime) -> None:
         """Reset snapshots at midnight (day always starts at 00:00)."""
-        _LOGGER.debug("_handle_midnight: resetting snapshots for %s", self._source_entity)
+        _MAIN_LOGGER.debug("sensor: _handle_midnight - resetting snapshots for %s", self._source_entity)
         self._snapshots = {
             w.index: WindowSnapshots(snapshot_start=None, snapshot_end=None)
             for w in self._windows
@@ -310,12 +309,11 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform (one or more sources under this entry)."""
-    _LOGGER.log(TRACE, "async_setup_entry: entry_id=%s", entry.entry_id)
-    _LOGGER.debug("async_setup_entry: entry_id=%s, setting up sensor entities", entry.entry_id)
+    _MAIN_LOGGER.debug("sensor: async_setup_entry - entry_id=%s, setting up entities", entry.entry_id)
     config = {**entry.data, **entry.options}
     sources = _get_sources_from_config(config)
     if not sources:
-        _LOGGER.debug("async_setup_entry: no sources in config")
+        _MAIN_LOGGER.debug("sensor: async_setup_entry - no sources in config")
         return
 
     hass.data.setdefault(DOMAIN, {})
@@ -325,15 +323,15 @@ async def async_setup_entry(
 
     for source_index, source_config in enumerate(sources):
         if not isinstance(source_config, dict):
-            _LOGGER.warning("async_setup_entry: source %s is not a dict", source_index)
+            _MAIN_LOGGER.debug("sensor: async_setup_entry - source %s is not a dict", source_index)
             continue
         source_entity = source_config.get(CONF_SOURCE_ENTITY)
         if not source_entity:
-            _LOGGER.warning("async_setup_entry: source %s has no source_entity", source_index)
+            _MAIN_LOGGER.debug("sensor: async_setup_entry - source %s has no source_entity", source_index)
             continue
         if not isinstance(source_entity, str):
-            _LOGGER.warning(
-                "async_setup_entry: source %s source_entity type=%s, coercing to str",
+            _MAIN_LOGGER.debug(
+                "sensor: async_setup_entry - source %s source_entity type=%s, coercing to str",
                 source_index,
                 type(source_entity).__name__,
             )
@@ -365,8 +363,8 @@ async def async_setup_entry(
             by_name.setdefault(w.name, []).append(w)
 
         for name_index, (window_name, ranges) in enumerate(by_name.items()):
-            _LOGGER.debug(
-                "async_setup_entry: creating sensor source=%r window=%r ranges=%s",
+            _MAIN_LOGGER.debug(
+                "sensor: async_setup_entry - creating sensor source=%r window=%r ranges=%s",
                 source_entity,
                 window_name,
                 len(ranges),
@@ -403,26 +401,25 @@ async def async_setup_entry(
             and entity_entry.unique_id not in current_unique_ids
             and entity_entry.unique_id not in retain_ids
         ):
-            _LOGGER.debug(
-                "Removing orphaned sensor entity %s (unique_id: %s)",
+            _MAIN_LOGGER.debug(
+                "sensor: removing orphaned entity %s (unique_id: %s)",
                 entity_entry.entity_id,
                 entity_entry.unique_id,
             )
             registry.async_remove(entity_entry.entity_id)
 
-    _LOGGER.log(
-        TRACE,
-        "async_setup_entry: adding %s entities: %s",
+    _MAIN_LOGGER.debug(
+        "sensor: async_setup_entry - adding %s entities: %s",
         len(all_sensors),
         [s.unique_id for s in all_sensors],
     )
-    _LOGGER.debug(
-        "async_setup_entry: adding %s entity(ies): %s",
+    _MAIN_LOGGER.debug(
+        "sensor: async_setup_entry - adding %s entity(ies): %s",
         len(all_sensors),
         [s._window_name for s in all_sensors],
     )
-    _LOGGER.info(
-        "async_setup_entry: entry_id=%s, added %s sensor(s)",
+    _MAIN_LOGGER.debug(
+        "sensor: async_setup_entry - entry_id=%s, added %s sensor(s)",
         entry.entry_id,
         len(all_sensors),
     )
@@ -467,7 +464,7 @@ class WindowEnergySensor(RestoreSensor):
 
     async def async_added_to_hass(self) -> None:
         """Restore state and register listeners."""
-        _LOGGER.debug("sensor %r: added to hass (entity_id=%s)", self._window_name, self.entity_id)
+        _MAIN_LOGGER.debug("sensor: added to hass - %r entity_id=%s", self._window_name, self.entity_id)
         await super().async_added_to_hass()
 
         # Friendly name is window name only (entity_id already includes source from __init__ name).
@@ -534,8 +531,8 @@ class WindowEnergySensor(RestoreSensor):
     @callback
     def _handle_data_update(self) -> None:
         """Update value when source entity state or snapshot data changes; write only if value/status changed."""
-        _LOGGER.debug(
-            "sensor %r: data update (source or snapshot changed)",
+        _MAIN_LOGGER.debug(
+            "sensor: data update - %r (source or snapshot changed)",
             self._window_name,
         )
         old_value = self._attr_native_value
@@ -565,8 +562,8 @@ class WindowEnergySensor(RestoreSensor):
                 try:
                     total_cost += round(float(value) * r.cost_per_kwh, 2)
                 except (TypeError, ValueError) as e:
-                    _LOGGER.debug(
-                        "_update_value: cost calc failed window=%r value=%r: %s",
+                    _MAIN_LOGGER.debug(
+                        "sensor: _update_value - cost calc failed window=%r value=%r: %s",
                         r.name,
                         value,
                         e,

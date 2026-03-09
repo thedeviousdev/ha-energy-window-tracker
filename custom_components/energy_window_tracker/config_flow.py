@@ -169,7 +169,7 @@ async def _get_config_defaults(hass: Any) -> dict[str, str]:
     """Load config.defaults from translations (entry_title, window_name, window_fallback)."""
     lang = hass.config.language or "en"
     try:
-        trans = await async_get_translations(hass, lang, "config", DOMAIN) or {}
+        trans = await async_get_translations(hass, lang, "config", [DOMAIN]) or {}
     except Exception:  # noqa: BLE001
         trans = {}
     return {
@@ -196,7 +196,7 @@ async def _get_window_form_labels(
     """
     lang = hass.config.language or "en"
     try:
-        trans = await async_get_translations(hass, lang, translation_domain, DOMAIN) or {}
+        trans = await async_get_translations(hass, lang, translation_domain, [DOMAIN]) or {}
     except Exception:  # noqa: BLE001
         trans = {}
     labels: dict[str, str] = {}

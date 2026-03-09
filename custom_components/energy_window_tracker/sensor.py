@@ -154,12 +154,21 @@ class WindowData:
             )
             return None
 
+    def _snapshots_valid_today(self) -> bool:
+        """Return True if stored snapshots are from today (invalid for 'today' sources otherwise)."""
+        if not self._snapshot_date:
+            return False
+        return self._snapshot_date == dt_util.now().date().isoformat()
+
     def get_window_value(self, window: WindowConfig) -> tuple[float | None, str]:
         """Get energy value and status for a window (same-day only; start < end)."""
         total = self.get_source_value()
         now = dt_util.now()
         current_minutes = now.hour * 60 + now.minute
-        snap = self._snapshots.get(window.index)
+        if not self._snapshots_valid_today():
+            snap = WindowSnapshots(None, None)
+        else:
+            snap = self._snapshots.get(window.index) or WindowSnapshots(None, None)
         start_min = window.start_h * 60 + window.start_m
         end_min = window.end_h * 60 + window.end_m
         in_window = start_min <= current_minutes < end_min
@@ -218,22 +227,37 @@ class WindowData:
         return False
 
     async def load(self) -> None:
-        """Load snapshots from storage."""
+        """Load snapshots from storage. Discard if snapshot_date is not today (e.g. after restart)."""
         stored = await self._store.async_load()
+        today = dt_util.now().date().isoformat()
         if stored:
             self._snapshot_date = stored.get("snapshot_date")
-            snapshots_data = stored.get("windows") or {}
-            loaded = 0
-            for w in self._windows:
-                if str(w.index) in snapshots_data:
-                    sd = snapshots_data[str(w.index)]
-                    self._snapshots[w.index] = WindowSnapshots(
-                        snapshot_start=sd.get("snapshot_start"),
-                        snapshot_end=sd.get("snapshot_end"),
-                    )
-                    loaded += 1
-            _MAIN_LOGGER.warning("sensor: load - %s snapshot_date=%s loaded %s window(s)", self._source_entity, self._snapshot_date, loaded)
+            if self._snapshot_date != today:
+                self._snapshot_date = today
+                self._snapshots = {
+                    w.index: WindowSnapshots(snapshot_start=None, snapshot_end=None)
+                    for w in self._windows
+                }
+                _MAIN_LOGGER.warning(
+                    "sensor: load - %s stored date %s != today %s, cleared snapshots",
+                    self._source_entity,
+                    stored.get("snapshot_date"),
+                    today,
+                )
+            else:
+                snapshots_data = stored.get("windows") or {}
+                loaded = 0
+                for w in self._windows:
+                    if str(w.index) in snapshots_data:
+                        sd = snapshots_data[str(w.index)]
+                        self._snapshots[w.index] = WindowSnapshots(
+                            snapshot_start=sd.get("snapshot_start"),
+                            snapshot_end=sd.get("snapshot_end"),
+                        )
+                        loaded += 1
+                _MAIN_LOGGER.warning("sensor: load - %s snapshot_date=%s loaded %s window(s)", self._source_entity, self._snapshot_date, loaded)
         else:
+            self._snapshot_date = today
             _MAIN_LOGGER.warning("sensor: load - %s no stored data", self._source_entity)
 
     async def save(self) -> None:
@@ -531,14 +555,14 @@ class WindowEnergySensor(RestoreSensor):
     @callback
     def _handle_data_update(self) -> None:
         """Update value when source entity state or snapshot data changes; write only if value/status changed."""
-        _MAIN_LOGGER.warning(
-            "sensor: data update - %r (source or snapshot changed)",
-            self._window_name,
-        )
         old_value = self._attr_native_value
         old_status = self._last_status
         self._update_value()
         if self.entity_id and (old_value != self._attr_native_value or old_status != self._last_status):
+            _MAIN_LOGGER.debug(
+                "sensor: state updated - %r (value or status changed)",
+                self._window_name,
+            )
             # Must run on event loop; callback can be invoked from another thread (e.g. time_change)
             self.hass.add_job(self.async_write_ha_state)
 

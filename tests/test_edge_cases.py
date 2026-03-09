@@ -6,6 +6,7 @@ that should not crash and should behave predictably.
 
 from __future__ import annotations
 
+from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -14,6 +15,7 @@ from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.energy_window_tracker.const import (
@@ -37,6 +39,18 @@ def _get_tracker_sensors(hass: HomeAssistant, entry_id: str) -> list:
         for e in registry.entities.get_entries_for_config_entry_id(entry_id)
         if e.domain == SENSOR_DOMAIN
     ]
+
+
+def _get_sensor_entity(hass: HomeAssistant, entry_id: str):
+    """Return first WindowEnergySensor for this config entry, or None."""
+    entities = _get_tracker_sensors(hass, entry_id)
+    if not entities:
+        return None
+    entity_id = entities[0].entity_id
+    comp = hass.data.get("entity_components", {}).get(SENSOR_DOMAIN)
+    if comp is None:
+        return None
+    return comp.get_entity(entity_id)
 
 
 # ----- Config flow edge cases -----
@@ -876,3 +890,104 @@ async def test_unload_when_not_loaded_no_crash(hass: HomeAssistant) -> None:
     # Do not call async_setup
     result = await hass.config_entries.async_unload(entry.entry_id)
     assert result is True
+
+
+# ----- Snapshot date validation (stale snapshots discarded for daily-reset sources) -----
+
+
+@pytest.mark.asyncio
+async def test_load_discards_snapshots_when_stored_date_not_today(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """When stored snapshot_date is not today, load() clears snapshots and sets _snapshot_date to today."""
+    # Use a fixed old date so it never equals the integration's "today" (dt_util.now() may differ from date.today())
+    stored_date = "2020-01-01"
+    stored = {
+        "snapshot_date": stored_date,
+        "windows": {
+            "0": {"snapshot_start": 100.0, "snapshot_end": 150.0},
+        },
+    }
+    hass.states.async_set("sensor.today_load", "0")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value=stored,
+    ):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+    entity = _get_sensor_entity(hass, mock_config_entry.entry_id)
+    assert entity is not None and hasattr(entity, "_data")
+    data = entity._data
+    assert data._snapshot_date == dt_util.now().date().isoformat()
+    # Stale stored values (100, 150) must not be used; may be None or a new late-start snapshot (e.g. 0)
+    assert data._snapshots[0].snapshot_start != 100.0
+    assert data._snapshots[0].snapshot_end != 150.0
+
+
+@pytest.mark.asyncio
+async def test_get_window_value_ignores_snapshots_when_date_not_today(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """get_window_value treats snapshots as missing when _snapshot_date is not today."""
+    hass.states.async_set("sensor.today_load", "5.0")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+    entity = _get_sensor_entity(hass, mock_config_entry.entry_id)
+    assert entity is not None and hasattr(entity, "_data")
+    data = entity._data
+    window = data._windows[0]
+    # Stale snapshot from another day: would wrongly give value = max(0, 5 - 100) = 0
+    data._snapshot_date = "2020-01-01"
+    from custom_components.energy_window_tracker.sensor import WindowSnapshots
+
+    data._snapshots[window.index] = WindowSnapshots(snapshot_start=100.0, snapshot_end=150.0)
+    # Freeze "now" to during window (09:00–17:00) so we're in the window
+    noon_today = datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
+    with patch("custom_components.energy_window_tracker.sensor.dt_util.now", return_value=noon_today):
+        value, status = data.get_window_value(window)
+    # Should ignore stale snapshot and report no snapshot
+    assert value == 0.0
+    assert status == "during_window (no snapshot)"
+
+
+@pytest.mark.asyncio
+async def test_sensor_updates_after_load_with_yesterday_snapshots(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """After load with yesterday's stored data, sensor uses same-day snapshot and value updates correctly."""
+    stored_date = "2020-01-01"  # Fixed old date so load() clears snapshots
+    stored = {
+        "snapshot_date": stored_date,
+        "windows": {"0": {"snapshot_start": 100.0, "snapshot_end": 150.0}},
+    }
+    hass.states.async_set("sensor.today_load", "2.0")
+    noon_today = datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value=stored,
+    ), patch(
+        "custom_components.energy_window_tracker.sensor.dt_util.now",
+        return_value=noon_today,
+    ):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+        sensors = _get_tracker_sensors(hass, mock_config_entry.entry_id)
+        assert len(sensors) == 1
+        state = hass.states.get(sensors[0].entity_id)
+        assert state is not None
+        # Cleared snapshots -> either "during_window (no snapshot)" or "during_window" if late-start already ran
+        assert state.attributes.get("status", "").startswith("during_window")
+        assert state.state == "0.0"
+        # Late-start snapshot (2.0) taken; source increase to 2.5 should show 0.5
+        hass.states.async_set("sensor.today_load", "2.5")
+        await hass.async_block_till_done()
+        state = hass.states.get(sensors[0].entity_id)
+        assert state is not None
+        assert float(state.state) == 0.5

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.23](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.22...v2.3.23) (2026-03-09)
+
+
+### Bug Fixes
+
+* **config:** persist add-another ranges, label format, config-flow debug logs ([#184](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/184)) ([dce2631](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/dce26319fedb4aa423517dae4d56a4a658ab3cef))
+
 ## [2.3.22](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.21...v2.3.22) (2026-03-09)
 
 

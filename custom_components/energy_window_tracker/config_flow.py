@@ -1343,6 +1343,12 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Edit one named window (all its ranges). One name, one cost, N ranges; Add another for more."""
+        _LOGGER.log(
+            TRACE,
+            "options async_step_edit_window: edit_name=%r user_input=%s",
+            getattr(self, "_edit_window_name", None),
+            "submitted" if user_input is not None else "show form",
+        )
         _LOGGER.debug(
             "options flow step edit_window: edit_name=%r user_input=%s",
             getattr(self, "_edit_window_name", None),
@@ -1376,17 +1382,31 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 current_name = src.get(CONF_NAME) or None
                 options_to_persist = await self._save_source(source_entity, new_windows, source_name=current_name)
                 return self._async_create_options_entry(options_to_persist)
-            num_ranges = max(num_ranges, 1)
-            w_name, cost_val, ranges_list = _collect_ranges_from_single_window_form(user_input, num_ranges)
+            # After "Add another time range" the form has more slots; use that count when collecting
+            num_ranges_for_collect = (
+                len(self._pending_add_ranges) + 1 if self._pending_add_ranges else max(num_ranges, 1)
+            )
+            w_name, cost_val, ranges_list = _collect_ranges_from_single_window_form(
+                user_input, num_ranges_for_collect
+            )
             if not ranges_list:
                 first_start = _time_to_str(user_input.get("start") or "00:00")
                 first_end = _time_to_str(user_input.get("end") or "00:00")
                 err = "window_start_after_end" if first_start >= first_end else "at_least_one_window"
+                ranges_for_form = [{"start": user_input.get("start") or "00:00", "end": user_input.get("end") or "00:00"}]
+                for i in range(1, num_ranges_for_collect):
+                    ranges_for_form.append({
+                        "start": user_input.get(f"start_{i}") or "00:00",
+                        "end": user_input.get(f"end_{i}") or "00:00",
+                    })
+                err_labels = await _get_window_form_labels(
+                    self.hass, "options", "edit_window", num_ranges=num_ranges_for_collect
+                )
                 schema = _build_single_window_multi_range_schema(
-                    labels, None, w_name or "", cost_val,
-                    [{"start": user_input.get("start") or "00:00", "end": user_input.get("end") or "00:00"}],
+                    err_labels, None, w_name or "", cost_val,
+                    ranges_for_form,
                     include_add_another=True, include_delete=True,
-                    num_slots=num_ranges,
+                    num_slots=num_ranges_for_collect,
                 )
                 return self.async_show_form(step_id="edit_window", data_schema=schema, errors={"base": err})
             if user_input.get("add_another"):
@@ -1408,7 +1428,14 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 new_windows.append({CONF_WINDOW_NAME: name, CONF_WINDOW_START: s, CONF_WINDOW_END: e, CONF_COST_PER_KWH: cost_val})
             current_name = src.get(CONF_NAME) or None
             options_to_persist = await self._save_source(source_entity, new_windows, source_name=current_name)
-            _LOGGER.debug("options flow step edit_window: saved changes for window %r", edit_name)
+            self._pending_add_ranges = []
+            self._pending_add_name = ""
+            self._pending_add_cost = 0.0
+            _LOGGER.debug(
+                "options flow step edit_window: saved window %r with %s time range(s)",
+                edit_name,
+                len(ranges_list),
+            )
             return self._async_create_options_entry(options_to_persist)
 
         _LOGGER.debug("options flow: showing form step_id=edit_window")

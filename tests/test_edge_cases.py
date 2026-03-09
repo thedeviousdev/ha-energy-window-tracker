@@ -444,6 +444,88 @@ async def test_options_edit_window_replaces_all_ranges_for_that_name(
 
 
 @pytest.mark.asyncio
+async def test_options_edit_window_add_another_time_range_then_save(
+    hass: HomeAssistant,
+) -> None:
+    """Edit window: add another time range, then save; both ranges are persisted."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Edit Add Range",
+        data={
+            CONF_SOURCES: [
+                {
+                    CONF_SOURCE_ENTITY: "sensor.today_load",
+                    CONF_NAME: "Energy",
+                    CONF_WINDOWS: [
+                        {CONF_WINDOW_NAME: "Peak", CONF_WINDOW_START: "09:00", CONF_WINDOW_END: "12:00", CONF_COST_PER_KWH: 0.2},
+                    ],
+                }
+            ]
+        },
+        options={},
+        entry_id="edit_add_range_id",
+    )
+    entry.add_to_hass(hass)
+    hass.states.async_set("sensor.today_load", "0")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ), patch.object(
+        hass.config_entries,
+        "async_reload",
+        new_callable=AsyncMock,
+    ):
+        opts = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            opts["flow_id"],
+            {"next_step_id": "list_windows"},
+        )
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {"window_index": "0"},
+        )
+        assert result["step_id"] == "edit_window"
+        # First submit: one range, add_another=True -> form re-shows with 2 slots
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "window_name": "Peak",
+                "cost_per_kwh": 0.2,
+                "start": "09:00",
+                "end": "12:00",
+                "add_another": True,
+                "delete_this_window": False,
+            },
+        )
+        assert result["type"] is data_entry_flow.FlowResultType.FORM
+        assert result["step_id"] == "edit_window"
+        # Second submit: two ranges (start_1, end_1), add_another=False -> save
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "window_name": "Peak",
+                "cost_per_kwh": 0.2,
+                "start": "09:00",
+                "end": "12:00",
+                "start_1": "14:00",
+                "end_1": "17:00",
+                "add_another": False,
+                "delete_this_window": False,
+            },
+        )
+    assert result["type"] is data_entry_flow.FlowResultType.CREATE_ENTRY
+    entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert entry
+    sources = entry.options.get(CONF_SOURCES) or entry.data.get(CONF_SOURCES) or []
+    windows = sources[0][CONF_WINDOWS]
+    peak = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "") == "Peak"]
+    assert len(peak) == 2
+    assert peak[0][CONF_WINDOW_START] == "09:00" and peak[0][CONF_WINDOW_END] == "12:00"
+    assert peak[1][CONF_WINDOW_START] == "14:00" and peak[1][CONF_WINDOW_END] == "17:00"
+
+
+@pytest.mark.asyncio
 async def test_options_update_source_empty_entity_rejected(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:

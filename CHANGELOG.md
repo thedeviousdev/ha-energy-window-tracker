@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.31](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.30...v2.3.31) (2026-03-09)
+
+
+### Features
+
+* dynamic labels from start_time/end_time + index ([#200](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/200)) ([563a272](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/563a2728e5daa81ecc6c39c3016c8058a249458d))
+
 ## [2.3.30](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.29...v2.3.30) (2026-03-09)
 
 

@@ -2,25 +2,16 @@
 
 Where translated strings show
 -----------------------------
-Form field labels (e.g. "Range #1 - Start time") appear in the UI when you:
+Form field labels (e.g. "1 - Start time", "2 - End time") appear in the UI when you:
 - Add an entry: step "Add window" (windows) and "Add new window" (add_window)
 - Configure an entry: "Add new window" and "Edit window" (add_window, edit_window)
 
-Labels are resolved in two ways:
-1. Schema description: we build labels in _get_window_form_labels() and pass them
-   as description= to vol.Optional() in _build_single_window_multi_range_schema().
-   The frontend may use this as the label next to each field.
-2. Translation keys: the frontend may look up config.step.<step_id>.data.<field>
-   or options.step.<step_id>.data.<field> from the integration's translations.
+Labels are built in Python only: _get_window_form_labels() loads start_time and end_time
+from translations (keys "start_time", "end_time"), then builds "{index} - Start time" etc.
+for each range slot (index 1, 2, ...) and passes them as description= to the schema.
 
-Translation files:
-- strings.json (default/fallback): config.step.windows.data, config.step.add_window.data,
-  config.step.edit_window.data, options.step.add_window.data, options.step.edit_window.data.
-- translations/en.json: same structure for English.
-- For the first range, "start" and "end" are set to "Range #1 - Start time" / "End time".
-- For more ranges, labels like "Range #2 - Start time" are built in Python (time_range_n
-  template + start_suffix/end_suffix) and only used as schema description (no JSON key
-  for start_1, start_2, ...).
+Translation files (strings.json, translations/en.json) need only start_time and end_time
+under config.step.<step_id>.data and options.step.<step_id>.data for the window steps.
 """
 
 from __future__ import annotations
@@ -214,8 +205,7 @@ async def _get_window_form_labels(
     num_ranges: int | None = None,
 ) -> dict[str, str]:
     """Load translated labels for the single-window form (one name, one cost, N start/end pairs).
-    Builds "Range #N - Start time" and "Range #N - End time" for each slot.
-    Builds labels for exactly num_ranges slots (no maximum). Adds _range_0, _range_1, ... for grouping.
+    Uses start_time and end_time from translations; builds labels as "{index} - Start time" etc.
     """
     lang = hass.config.language or "en"
     try:
@@ -223,30 +213,28 @@ async def _get_window_form_labels(
     except Exception:  # noqa: BLE001
         trans = {}
     labels: dict[str, str] = {}
-    for key in ("window_name", "cost_per_kwh", "start", "end", "add_another", "delete_this_window"):
+    for key in ("window_name", "cost_per_kwh", "add_another", "delete_this_window"):
         k = _data_key(step_id, key)
         if k in trans:
             labels[key] = trans[k]
-    # Suffix strings for building; time_range_n template for "Range #N - Start time" / "End time"
-    time_range_n_t = trans.get(_data_key(step_id, "time_range_n")) or "Range #{n}"
-    start_suffix = trans.get(_data_key(step_id, "start_suffix")) or labels.get("start") or "Start time"
-    end_suffix = trans.get(_data_key(step_id, "end_suffix")) or labels.get("end") or "End time"
+    start_time = trans.get(_data_key(step_id, "start_time")) or "Start time"
+    end_time = trans.get(_data_key(step_id, "end_time")) or "End time"
     n_r = num_ranges if num_ranges is not None else 1
-    # Build all start/end labels: "Range #N - Start time" / "Range #N - End time"
     if num_ranges is not None:
         for i in range(num_ranges):
-            labels[f"_range_{i}"] = time_range_n_t.format(n=i + 1)
-            heading = time_range_n_t.format(n=i + 1)
+            idx = i + 1
             if i == 0:
-                labels["start"] = f"{heading} - {start_suffix}"
-                labels["end"] = f"{heading} - {end_suffix}"
+                labels["start"] = f"{idx} - {start_time}"
+                labels["end"] = f"{idx} - {end_time}"
             else:
-                labels[f"start_{i}"] = f"{heading} - {start_suffix}"
-                labels[f"end_{i}"] = f"{heading} - {end_suffix}"
+                labels[f"start_{i}"] = f"{idx} - {start_time}"
+                labels[f"end_{i}"] = f"{idx} - {end_time}"
     else:
+        labels["start"] = f"1 - {start_time}"
+        labels["end"] = f"1 - {end_time}"
         for i in range(1, n_r):
-            labels[f"start_{i}"] = start_suffix
-            labels[f"end_{i}"] = end_suffix
+            labels[f"start_{i}"] = f"{i + 1} - {start_time}"
+            labels[f"end_{i}"] = f"{i + 1} - {end_time}"
     return labels
 
 
@@ -261,7 +249,7 @@ def _build_single_window_multi_range_schema(
     num_slots: int | None = None,
 ) -> vol.Schema:
     """Build schema: one window name, one cost, then start/end for range 0, start_1/end_1, ...
-    Labels: "Range #1 - Start time", "Range #1 - End time", "Range #2 - Start time", etc.
+    Labels: "1 - Start time", "1 - End time", "2 - Start time", etc. (built in _get_window_form_labels).
     If num_slots is set, that many range slots are shown; otherwise max(1, len(ranges)).
     """
     schema_dict: dict[Any, Any] = {}
@@ -290,7 +278,7 @@ def _build_single_window_multi_range_schema(
             r = ranges[i] if i < len(ranges) else {}
             s_def = _time_to_str(r.get("start") or DEFAULT_WINDOW_START)
             e_def = _time_to_str(r.get("end") or DEFAULT_WINDOW_END)
-        # Labels built from time_range_n in _get_window_form_labels: "Range #N - Start time" / "End time"
+        # Labels built in _get_window_form_labels: "{index} - Start time" / "{index} - End time"
         start_desc = labels.get(sk) or labels.get("start") or "Start time"
         end_desc = labels.get(ek) or labels.get("end") or "End time"
         schema_dict[

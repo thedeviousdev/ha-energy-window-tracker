@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.34](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.33...v2.3.34) (2026-03-10)
+
+
+### Bug Fixes
+
+* use explicit HA config timezone for window start/end and today ([#207](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/207)) ([e44dc6e](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/e44dc6e995f878865b66adc4ec647518a828a45f))
+
 ## [2.3.33](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.32...v2.3.33) (2026-03-10)
 
 

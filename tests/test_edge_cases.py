@@ -944,7 +944,7 @@ async def test_unload_when_not_loaded_no_crash(hass: HomeAssistant) -> None:
 async def test_sensor_writes_state_when_source_value_changes_even_if_displayed_unchanged(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
-    """[Happy] When source value changes but displayed value and status stay the same, we still write state (last_updated advances)."""
+    """[Happy] (Single range.) When source value changes but displayed value and status stay the same, we still write state (last_updated advances)."""
     noon_today = datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
     hass.states.async_set("sensor.today_load", "1.0")
     with patch(
@@ -976,7 +976,7 @@ async def test_sensor_writes_state_when_source_value_changes_even_if_displayed_u
 async def test_sensor_does_not_write_state_when_source_value_unchanged(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:
-    """[Unhappy] When source value does not change (and value/status unchanged), we do not write state again (no redundant write)."""
+    """[Unhappy] (Single range.) When source value does not change (and value/status unchanged), we do not write state again (no redundant write)."""
     noon_today = datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
     hass.states.async_set("sensor.today_load", "1.0")
     with patch(
@@ -1000,6 +1000,97 @@ async def test_sensor_does_not_write_state_when_source_value_unchanged(
         entity._handle_data_update()
         second_calls = mock_write.call_count
     assert second_calls == first_calls, "async_write_ha_state should not be called again when source value is unchanged"
+
+
+def _multi_range_config_entry():
+    """Config entry with one window name and multiple time ranges (e.g. Shoulder: 00:00-11:00, 14:00-16:00, 23:00-23:59)."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        title="Multi-Range",
+        data={
+            CONF_SOURCES: [
+                {
+                    CONF_SOURCE_ENTITY: "sensor.today_load",
+                    CONF_NAME: "Energy",
+                    CONF_WINDOWS: [
+                        {CONF_WINDOW_NAME: "Shoulder", CONF_WINDOW_START: "00:00", CONF_WINDOW_END: "11:00"},
+                        {CONF_WINDOW_NAME: "Shoulder", CONF_WINDOW_START: "14:00", CONF_WINDOW_END: "16:00"},
+                        {CONF_WINDOW_NAME: "Shoulder", CONF_WINDOW_START: "23:00", CONF_WINDOW_END: "23:59"},
+                    ],
+                }
+            ]
+        },
+        options={},
+        entry_id="multi_range_entry_id",
+    )
+
+
+@pytest.mark.asyncio
+async def test_sensor_writes_state_when_source_changes_multiple_ranges(
+    hass: HomeAssistant,
+) -> None:
+    """[Happy] (Multiple ranges.) Same as single-range: when source value changes we write state (last_updated advances)."""
+    entry = _multi_range_config_entry()
+    entry.add_to_hass(hass)
+    noon_today = datetime.now().replace(hour=15, minute=0, second=0, microsecond=0)
+    hass.states.async_set("sensor.today_load", "1.0")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ), patch(
+        "custom_components.energy_window_tracker.sensor.dt_util.now",
+        return_value=noon_today,
+    ), patch(
+        "custom_components.energy_window_tracker.sensor.WindowData.take_late_start_snapshot",
+        return_value=False,
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    entity = _get_sensor_entity(hass, entry.entry_id)
+    assert entity is not None
+    assert len(entity._ranges) == 3
+    with patch.object(entity, "async_write_ha_state") as mock_write:
+        entity._handle_data_update()
+        first_calls = mock_write.call_count
+        hass.states.async_set("sensor.today_load", "2.0")
+        await hass.async_block_till_done()
+        entity._handle_data_update()
+        second_calls = mock_write.call_count
+    assert second_calls > first_calls, "async_write_ha_state should be called again when source value changes (multi-range)"
+
+
+@pytest.mark.asyncio
+async def test_sensor_does_not_write_state_when_source_unchanged_multiple_ranges(
+    hass: HomeAssistant,
+) -> None:
+    """[Unhappy] (Multiple ranges.) Same as single-range: when source value unchanged we do not write again."""
+    entry = _multi_range_config_entry()
+    entry.add_to_hass(hass)
+    noon_today = datetime.now().replace(hour=15, minute=0, second=0, microsecond=0)
+    hass.states.async_set("sensor.today_load", "1.0")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ), patch(
+        "custom_components.energy_window_tracker.sensor.dt_util.now",
+        return_value=noon_today,
+    ), patch(
+        "custom_components.energy_window_tracker.sensor.WindowData.take_late_start_snapshot",
+        return_value=False,
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    entity = _get_sensor_entity(hass, entry.entry_id)
+    assert entity is not None
+    assert len(entity._ranges) == 3
+    with patch.object(entity, "async_write_ha_state") as mock_write:
+        entity._handle_data_update()
+        first_calls = mock_write.call_count
+        entity._handle_data_update()
+        second_calls = mock_write.call_count
+    assert second_calls == first_calls, "async_write_ha_state should not be called again when source unchanged (multi-range)"
 
 
 # ----- Snapshot date validation (stale snapshots discarded for daily-reset sources) -----

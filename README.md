@@ -69,6 +69,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for tests and CI.
 
 ## FAQ
 
+**What timezone are window times and “today” in?**  
+All times use your **Home Assistant default timezone** (Settings → General → Time zone). Window start/end (e.g. 11:00–14:00) are local time; “today” for snapshots and midnight reset is the local date. There is no separate timezone setting.
+
 **What kind of energy sensor do I need?**  
 The source must be a **daily cumulative total** that resets (e.g. at midnight).
 

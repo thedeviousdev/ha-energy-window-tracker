@@ -937,6 +937,41 @@ async def test_unload_when_not_loaded_no_crash(hass: HomeAssistant) -> None:
     assert result is True
 
 
+# ----- State written when source changes (last_updated advances) -----
+
+
+@pytest.mark.asyncio
+async def test_sensor_writes_state_when_source_value_changes_even_if_displayed_unchanged(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """When source entity value changes but displayed value and status stay the same, we still write state (last_updated advances)."""
+    noon_today = datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
+    hass.states.async_set("sensor.today_load", "1.0")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ), patch(
+        "custom_components.energy_window_tracker.sensor.dt_util.now",
+        return_value=noon_today,
+    ), patch(
+        "custom_components.energy_window_tracker.sensor.WindowData.take_late_start_snapshot",
+        return_value=False,
+    ):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+    entity = _get_sensor_entity(hass, mock_config_entry.entry_id)
+    assert entity is not None
+    with patch.object(entity, "async_write_ha_state") as mock_write:
+        entity._handle_data_update()
+        first_calls = mock_write.call_count
+        hass.states.async_set("sensor.today_load", "2.0")
+        await hass.async_block_till_done()
+        entity._handle_data_update()
+        second_calls = mock_write.call_count
+    assert second_calls > first_calls, "async_write_ha_state should be called again when source value changes (so last_updated advances)"
+
+
 # ----- Snapshot date validation (stale snapshots discarded for daily-reset sources) -----
 
 

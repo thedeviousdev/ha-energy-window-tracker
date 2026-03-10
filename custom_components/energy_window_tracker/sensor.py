@@ -117,18 +117,24 @@ class WindowData:
         source_entity: str,
         windows: list[WindowConfig],
         store: Store,
+        tz: datetime.tzinfo | None = None,
     ) -> None:
         self.hass = hass
         self._entry_id = entry_id
         self._source_entity = source_entity
         self._windows = windows
         self._store = store
+        self._tz = tz or dt_util.get_default_time_zone()
         self._snapshots: dict[int, WindowSnapshots] = {
             w.index: WindowSnapshots(snapshot_start=None, snapshot_end=None)
             for w in windows
         }
         self._snapshot_date: str | None = None
         self._update_callbacks: list[callback] = []
+
+    def _now(self) -> datetime:
+        """Current time in the integration timezone (HA config time_zone)."""
+        return dt_util.now(self._tz)
 
     def add_update_callback(self, cb: callback) -> None:
         """Register a callback to run when snapshots change."""
@@ -155,15 +161,22 @@ class WindowData:
             return None
 
     def _snapshots_valid_today(self) -> bool:
-        """Return True if stored snapshots are from today (invalid for 'today' sources otherwise)."""
+        """Return True if stored snapshots are from today (invalid for 'today' sources otherwise).
+
+        Uses HA config timezone so 'today' matches the frontend date.
+        """
         if not self._snapshot_date:
             return False
-        return self._snapshot_date == dt_util.now().date().isoformat()
+        return self._snapshot_date == self._now().date().isoformat()
 
     def get_window_value(self, window: WindowConfig) -> tuple[float | None, str]:
-        """Get energy value and status for a window (same-day only; start < end)."""
+        """Get energy value and status for a window (same-day only; start < end).
+
+        All times use the HA config timezone: window start/end and "now" are in
+        local time, so 11:00–14:00 means 11am–2pm local.
+        """
         total = self.get_source_value()
-        now = dt_util.now()
+        now = self._now()
         current_minutes = now.hour * 60 + now.minute
         if not self._snapshots_valid_today():
             snap = WindowSnapshots(None, None)
@@ -206,7 +219,7 @@ class WindowData:
         snap = self._snapshots.get(window_index) or WindowSnapshots(None, None)
         if snap.snapshot_start is not None:
             return False
-        now = dt_util.now()
+        now = self._now()
         current_minutes = now.hour * 60 + now.minute
         for w in self._windows:
             if w.index != window_index:
@@ -217,7 +230,7 @@ class WindowData:
             if not in_window:
                 return False
             if not self._snapshot_date:
-                self._snapshot_date = now.date().isoformat()
+                self._snapshot_date = self._now().date().isoformat()
             self._snapshots[window_index] = WindowSnapshots(
                 snapshot_start=value,
                 snapshot_end=None,
@@ -229,7 +242,7 @@ class WindowData:
     async def load(self) -> None:
         """Load snapshots from storage. Discard if snapshot_date is not today (e.g. after restart)."""
         stored = await self._store.async_load()
-        today = dt_util.now().date().isoformat()
+        today = self._now().date().isoformat()
         if stored:
             self._snapshot_date = stored.get("snapshot_date")
             if self._snapshot_date != today:
@@ -276,8 +289,15 @@ class WindowData:
 
     def _handle_window_start(self, window: WindowConfig, now: datetime) -> None:
         """Snapshot at window start."""
-        today = dt_util.now().date().isoformat()
-        self._snapshot_date = today
+        local_now = self._now()
+        self._snapshot_date = local_now.date().isoformat()
+        _MAIN_LOGGER.debug(
+            "sensor: window '%s' start fired at callback_now=%s local_now=%s tz=%s",
+            window.name,
+            now.isoformat() if now.tzinfo else now.isoformat() + " (naive)",
+            local_now.isoformat(),
+            getattr(self._tz, "key", str(self._tz)),
+        )
         value = self.get_source_value()
         if value is not None:
             self._snapshots[window.index] = WindowSnapshots(
@@ -302,13 +322,20 @@ class WindowData:
         self._notify_update()
 
     def _handle_midnight(self, now: datetime) -> None:
-        """Reset snapshots at midnight (day always starts at 00:00)."""
+        """Reset snapshots at midnight (day always starts at 00:00 local)."""
+        local_now = self._now()
+        _MAIN_LOGGER.debug(
+            "sensor: midnight fired at callback_now=%s local_now=%s tz=%s",
+            now.isoformat() if now.tzinfo else str(now) + " (naive)",
+            local_now.isoformat(),
+            getattr(self._tz, "key", str(self._tz)),
+        )
         _MAIN_LOGGER.warning("sensor: _handle_midnight - resetting snapshots for %s", self._source_entity)
         self._snapshots = {
             w.index: WindowSnapshots(snapshot_start=None, snapshot_end=None)
             for w in self._windows
         }
-        self._snapshot_date = dt_util.now().date().isoformat()
+        self._snapshot_date = local_now.date().isoformat()
         self._schedule_save()
         self._notify_update()
 
@@ -371,12 +398,18 @@ async def async_setup_entry(
             STORAGE_VERSION,
             f"{STORAGE_KEY}_{entry.entry_id}_{slug}",
         )
+        # Use HA configured timezone so window start/end and "today" match the frontend
+        tz_str = getattr(hass.config, "time_zone", None) or "UTC"
+        tz = await hass.async_add_executor_job(dt_util.get_time_zone, tz_str)
+        if tz is None:
+            tz = dt_util.get_default_time_zone()
         data = WindowData(
             hass=hass,
             entry_id=entry.entry_id,
             source_entity=source_entity,
             windows=windows,
             store=store,
+            tz=tz,
         )
         await data.load()
         entry_data[slug] = data

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.33](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.32...v2.3.33) (2026-03-10)
+
+
+### Bug Fixes
+
+* **sensor:** write state when source value changes so last_updated advances ([#205](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/205)) ([8413e6b](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/8413e6bfb8fbd21dcde552c76ab08eda3bfac54e))
+
 ## [2.3.32](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.31...v2.3.32) (2026-03-09)
 
 

@@ -545,24 +545,31 @@ class WindowEnergySensor(RestoreSensor):
             self.async_write_ha_state()
 
     async def async_update(self) -> None:
-        """Poll source and refresh displayed value; write only if value or status changed."""
+        """Poll source and refresh displayed value; write if value, status, or source changed."""
         old_value = self._attr_native_value
         old_status = self._last_status
+        old_source = self._last_source_value
         self._update_value()
-        if self.entity_id and (old_value != self._attr_native_value or old_status != self._last_status):
+        value_or_status_changed = old_value != self._attr_native_value or old_status != self._last_status
+        source_changed = old_source != self._last_source_value
+        if self.entity_id and (value_or_status_changed or source_changed):
             self.async_write_ha_state()
 
     @callback
     def _handle_data_update(self) -> None:
-        """Update value when source entity state or snapshot data changes; write only if value/status changed."""
+        """Update value when source entity state or snapshot data changes; write if value, status, or source changed."""
         old_value = self._attr_native_value
         old_status = self._last_status
+        old_source = self._last_source_value
         self._update_value()
-        if self.entity_id and (old_value != self._attr_native_value or old_status != self._last_status):
-            _MAIN_LOGGER.debug(
-                "sensor: state updated - %r (value or status changed)",
-                self._window_name,
-            )
+        value_or_status_changed = old_value != self._attr_native_value or old_status != self._last_status
+        source_changed = old_source != self._last_source_value
+        if self.entity_id and (value_or_status_changed or source_changed):
+            if value_or_status_changed:
+                _MAIN_LOGGER.debug(
+                    "sensor: state updated - %r (value or status changed)",
+                    self._window_name,
+                )
             # Must run on event loop; callback can be invoked from another thread (e.g. time_change)
             self.hass.add_job(self.async_write_ha_state)
 

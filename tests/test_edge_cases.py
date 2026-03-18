@@ -644,6 +644,25 @@ async def test_window_form_labels_built_from_start_time_end_time(hass: HomeAssis
 
 
 @pytest.mark.asyncio
+async def test_translation_contains_start_end_range_keys() -> None:
+    """[Happy] Translations include labels for start/end and start_1/end_1 fields."""
+    import json
+    from pathlib import Path
+
+    strings = json.loads(
+        Path("custom_components/energy_window_tracker/strings.json").read_text()
+    )
+    for section in ("config", "options"):
+        for step in ("windows", "add_window", "edit_window"):
+            # "windows" only exists in config
+            if section == "options" and step == "windows":
+                continue
+            data = strings[section]["step"][step]["data"]
+            assert "start" in data and "end" in data
+            assert "start_1" in data and "end_1" in data
+
+
+@pytest.mark.asyncio
 async def test_window_form_schema_descriptions_match_dynamic_labels(hass: HomeAssistant) -> None:
     """[Happy] Schema field descriptions match dynamic labels for any number of slots."""
     from custom_components.energy_window_tracker.config_flow import (

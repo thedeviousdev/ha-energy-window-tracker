@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
+import re
 from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -44,6 +46,27 @@ from .const import (
 )
 
 _MAIN_LOGGER = logging.getLogger("custom_components.energy_window_tracker")
+
+_RE_NON_SLUG = re.compile(r"[^a-z0-9_]+")
+
+
+def _window_slug(window_name: str) -> str:
+    """Make a stable slug for a window name (unique_id component)."""
+    base = (window_name or "").strip().lower().replace(" ", "_")
+    base = _RE_NON_SLUG.sub("_", base).strip("_")
+    return (base or "window")[:48]
+
+
+def _stable_window_unique_id(entry_id: str, source_slug: str, window_name: str) -> str:
+    """Stable unique_id for a window sensor.
+
+    Includes a short hash to avoid collisions when different names slugify the same.
+    """
+    slug = _window_slug(window_name)
+    h = hashlib.md5(
+        (window_name or "").encode("utf-8"), usedforsecurity=False
+    ).hexdigest()[:8]
+    return f"{entry_id}_{source_slug}_{slug}_{h}"
 
 
 @dataclass
@@ -398,6 +421,17 @@ async def async_setup_entry(
             STORAGE_VERSION,
             f"{STORAGE_KEY}_{entry.entry_id}_{slug}",
         )
+        # Preserve existing unique_ids by window name so entity_ids don't reshuffle
+        # when window order changes (older versions used index-based unique_ids).
+        registry = er.async_get(hass)
+        existing_unique_id_by_name: dict[str, str] = {}
+        for entity_entry in registry.entities.get_entries_for_config_entry_id(entry.entry_id):
+            if entity_entry.domain != "sensor" or entity_entry.platform != DOMAIN:
+                continue
+            if not entity_entry.unique_id.startswith(f"{entry.entry_id}_{slug}_"):
+                continue
+            if entity_entry.original_name and entity_entry.original_name not in existing_unique_id_by_name:
+                existing_unique_id_by_name[entity_entry.original_name] = entity_entry.unique_id
         # Use HA configured timezone so window start/end and "today" match the frontend
         tz_str = getattr(hass.config, "time_zone", None) or "UTC"
         tz = await hass.async_add_executor_job(dt_util.get_time_zone, tz_str)
@@ -438,6 +472,7 @@ async def async_setup_entry(
                 source_slug=slug,
                 source_index=source_index,
                 name_index=name_index,
+                existing_unique_id=existing_unique_id_by_name.get(window_name),
             )
             all_sensors.append(sensor)
 
@@ -506,6 +541,7 @@ class WindowEnergySensor(RestoreSensor):
         source_slug: str | None = None,
         source_index: int = 0,
         name_index: int = 0,
+        existing_unique_id: str | None = None,
     ) -> None:
         self.hass = hass
         self._entry_id = entry_id
@@ -515,7 +551,12 @@ class WindowEnergySensor(RestoreSensor):
         self._all_windows = all_windows
         self._is_first = is_first
         self._attr_name = f"{source_slug} {window_name}" if source_slug else window_name
-        self._attr_unique_id = f"{entry_id}_{source_slug}_{name_index}"
+        if source_slug:
+            self._attr_unique_id = existing_unique_id or _stable_window_unique_id(
+                entry_id, source_slug, window_name
+            )
+        else:
+            self._attr_unique_id = existing_unique_id or f"{entry_id}_{name_index}"
         self._last_source_value: float | None = None
         self._last_status: str | None = None
 

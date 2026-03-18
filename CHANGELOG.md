@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.3.37](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.36...v2.3.37) (2026-03-18)
+
+
+### Bug Fixes
+
+* guard options reload during setup ([#216](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/216)) ([d91ebbd](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/d91ebbd456d662a770006b8871c5b1a1545358c6))
+* **options:** preserve window dropdown order ([#213](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/213)) ([3e8866f](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/3e8866f25086c099557bb2badab623f3ed5faf78))
+* **sensor:** harden unique_id preservation ([#219](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/219)) ([f4a0a51](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/f4a0a5124f9c878c247e26f39553513bee9ae043))
+* validate time inputs + expose config_warnings ([#214](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/214)) ([e000509](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/e0005098ffccd5781c17a17b0fd51253c2fe2a88))
+
+
+### Miscellaneous Chores
+
+* **logging:** reduce selector normalization warnings ([#217](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/217)) ([cd7aacc](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/cd7aacc9eb41660ab7d10ddc80eb5f4176330515))
+
+
+### Documentation
+
+* clarify config flow label translations ([#218](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/218)) ([f4a4383](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/f4a43832312b332e8c77b1081c0f97211789500a))
+
 ## [2.3.36](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.35...v2.3.36) (2026-03-18)
 
 

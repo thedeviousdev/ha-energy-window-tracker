@@ -13,6 +13,7 @@ from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
@@ -242,6 +243,48 @@ async def test_unique_ids_do_not_collide_when_names_slugify_same(hass: HomeAssis
     assert len(entities) == 2
     unique_ids = {e.unique_id for e in entities}
     assert len(unique_ids) == 2, "unique_id must be distinct even if slug collides"
+
+
+@pytest.mark.asyncio
+async def test_cost_attributes_present_when_rate_configured_before_window(hass: HomeAssistant) -> None:
+    """[Happy] When cost_per_kwh is configured, cost attrs exist even if running cost is 0."""
+    entry = MockConfigEntry(
+        domain="energy_window_tracker",
+        title="Cost",
+        data={
+            "sources": [
+                {
+                    "source_entity": "sensor.today_load",
+                    "name": "Energy",
+                    "windows": [
+                        {"name": "Peak", "start": "09:00", "end": "17:00", "cost_per_kwh": 0.15},
+                    ],
+                }
+            ]
+        },
+        options={},
+        entry_id="cost_entry_id",
+    )
+    entry.add_to_hass(hass)
+    hass.states.async_set("sensor.today_load", "5.0")
+    before_window = dt_util.now().replace(hour=8, minute=0, second=0, microsecond=0)
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ), patch(
+        "custom_components.energy_window_tracker.sensor.dt_util.now",
+        return_value=before_window,
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    sensors = _get_tracker_sensors(hass, entry.entry_id)
+    assert len(sensors) == 1
+    state = hass.states.get(sensors[0].entity_id)
+    assert state is not None
+    assert state.attributes.get("cost_per_kwh") == 0.15
+    assert state.attributes.get("cost") == 0.0
 
 
 @pytest.mark.asyncio

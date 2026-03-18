@@ -9,7 +9,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -49,3 +49,19 @@ async def test_unload_when_not_loaded_succeeds(hass: HomeAssistant) -> None:
     entry.add_to_hass(hass)
     result = await hass.config_entries.async_unload(entry.entry_id)
     assert result is True
+
+
+@pytest.mark.asyncio
+async def test_update_options_does_not_reload_when_not_loaded(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """[Unhappy] Options update listener does not reload when entry isn't loaded."""
+    from custom_components.energy_window_tracker import async_update_options
+
+    class _StubEntry:
+        entry_id = "stub_entry_id"
+        state = ConfigEntryState.SETUP_IN_PROGRESS
+
+    with patch.object(hass.config_entries, "async_reload", new_callable=AsyncMock) as m:
+        await async_update_options(hass, _StubEntry())  # type: ignore[arg-type]
+    m.assert_not_called()

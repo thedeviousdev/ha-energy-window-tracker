@@ -140,31 +140,35 @@ def _time_to_str(t: Any) -> str:
 def _normalize_entity_selector_value(value: Any) -> str:
     """Normalize EntitySelector result to a single entity_id string (frontend may send list or dict)."""
     if value is None:
-        _MAIN_LOGGER.warning("entity selector value: None -> ''")
+        _MAIN_LOGGER.debug("entity selector value: None -> ''")
         return ""
     if isinstance(value, str):
         out = value.strip()
-        _MAIN_LOGGER.warning("entity selector value: str %r -> %r", value[:80] if len(value) > 80 else value, out)
+        _MAIN_LOGGER.debug(
+            "entity selector value: str %r -> %r",
+            value[:80] if len(value) > 80 else value,
+            out,
+        )
         return out
     if isinstance(value, list) and value:
         first = value[0]
         if isinstance(first, str):
             out = first.strip()
-            _MAIN_LOGGER.warning("entity selector value: list[str] -> %r", out)
+            _MAIN_LOGGER.debug("entity selector value: list[str] -> %r", out)
             return out
         if isinstance(first, dict):
             out = _normalize_entity_selector_value(first.get("entity_id") or first.get("id") or "")
-            _MAIN_LOGGER.warning("entity selector value: list[dict] -> %r", out)
+            _MAIN_LOGGER.debug("entity selector value: list[dict] -> %r", out)
             return out
         out = str(first).strip()
-        _MAIN_LOGGER.warning("entity selector value: list[other] -> %r", out)
+        _MAIN_LOGGER.debug("entity selector value: list[other] -> %r", out)
         return out
     if isinstance(value, dict):
         out = _normalize_entity_selector_value(value.get("entity_id") or value.get("id") or "")
-        _MAIN_LOGGER.warning("entity selector value: dict -> %r", out)
+        _MAIN_LOGGER.debug("entity selector value: dict -> %r", out)
         return out
     out = str(value).strip() if value else ""
-    _MAIN_LOGGER.warning("entity selector value: type %s -> %r", type(value).__name__, out)
+    _MAIN_LOGGER.debug("entity selector value: type %s -> %r", type(value).__name__, out)
     return out
 
 

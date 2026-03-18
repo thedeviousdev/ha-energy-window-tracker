@@ -652,6 +652,7 @@ class WindowEnergySensor(RestoreSensor):
         combined_status = "before_window"
         total_cost = 0.0
         range_attrs: list[dict[str, str]] = []
+        rates: list[float] = []
 
         for r in self._ranges:
             value, status = self._data.get_window_value(r)
@@ -673,6 +674,8 @@ class WindowEnergySensor(RestoreSensor):
                         value,
                         e,
                     )
+            if r.cost_per_kwh and r.cost_per_kwh > 0:
+                rates.append(r.cost_per_kwh)
             range_attrs.append({
                 "start": _time_str(r.start_h, r.start_m),
                 "end": _time_str(r.end_h, r.end_m),
@@ -688,8 +691,11 @@ class WindowEnergySensor(RestoreSensor):
             ATTR_STATUS: combined_status,
             "ranges": range_attrs,
         }
-        if total_cost > 0:
+        if rates:
+            # Always expose cost when rate is configured so automations can track a running balance.
             attrs[ATTR_COST] = round(total_cost, 2)
+            uniq_rates = sorted({round(float(x), 6) for x in rates})
+            attrs["cost_per_kwh"] = uniq_rates[0] if len(uniq_rates) == 1 else uniq_rates
         self._attr_extra_state_attributes = attrs
         self._last_source_value = self._data.get_source_value()
         self._last_status = combined_status

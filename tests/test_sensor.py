@@ -174,21 +174,25 @@ async def test_unique_ids_stable_when_windows_reordered(hass: HomeAssistant) -> 
     assert len(set(initial.values())) == 2, "sanity check: two distinct sensors"
 
     # Reorder windows (simulate editing that changes list order)
-    hass.config_entries.async_update_entry(
-        entry,
-        options={
-            "sources": [
-                {
-                    "source_entity": "sensor.today_load",
-                    "name": "Energy",
-                    "windows": [
-                        {"name": "Off-Peak", "start": "12:00", "end": "17:00"},
-                        {"name": "Peak", "start": "09:00", "end": "12:00"},
-                    ],
-                }
-            ]
-        },
-    )
+    # Updating options triggers the integration's update listener, which may call async_reload.
+    # Patch it to avoid races with explicit unload/setup in this test (CI is stricter).
+    with patch.object(hass.config_entries, "async_reload", new_callable=AsyncMock):
+        hass.config_entries.async_update_entry(
+            entry,
+            options={
+                "sources": [
+                    {
+                        "source_entity": "sensor.today_load",
+                        "name": "Energy",
+                        "windows": [
+                            {"name": "Off-Peak", "start": "12:00", "end": "17:00"},
+                            {"name": "Peak", "start": "09:00", "end": "12:00"},
+                        ],
+                    }
+                ]
+            },
+        )
+        await hass.async_block_till_done()
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     with patch(
@@ -275,21 +279,23 @@ async def test_renaming_one_window_does_not_change_others_unique_ids(hass: HomeA
     assert set(initial.keys()) == {"sensor.today_load_peak", "sensor.today_load_off_peak"}
 
     # Rename "Peak" -> "Super Peak" and also reorder to mimic the UI edit behavior.
-    hass.config_entries.async_update_entry(
-        entry,
-        options={
-            "sources": [
-                {
-                    "source_entity": "sensor.today_load",
-                    "name": "Energy",
-                    "windows": [
-                        {"name": "Off-Peak", "start": "12:00", "end": "17:00"},
-                        {"name": "Super Peak", "start": "09:00", "end": "12:00"},
-                    ],
-                }
-            ]
-        },
-    )
+    with patch.object(hass.config_entries, "async_reload", new_callable=AsyncMock):
+        hass.config_entries.async_update_entry(
+            entry,
+            options={
+                "sources": [
+                    {
+                        "source_entity": "sensor.today_load",
+                        "name": "Energy",
+                        "windows": [
+                            {"name": "Off-Peak", "start": "12:00", "end": "17:00"},
+                            {"name": "Super Peak", "start": "09:00", "end": "12:00"},
+                        ],
+                    }
+                ]
+            },
+        )
+        await hass.async_block_till_done()
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     with patch(

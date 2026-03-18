@@ -288,6 +288,45 @@ async def test_cost_attributes_present_when_rate_configured_before_window(hass: 
 
 
 @pytest.mark.asyncio
+async def test_sensor_exposes_config_warnings_for_invalid_stored_times(hass: HomeAssistant) -> None:
+    """[Unhappy] Invalid stored times do not crash; sensor exposes config_warnings attribute."""
+    entry = MockConfigEntry(
+        domain="energy_window_tracker",
+        title="Warnings",
+        data={
+            "sources": [
+                {
+                    "source_entity": "sensor.today_load",
+                    "name": "Energy",
+                    "windows": [
+                        {"name": "Peak", "start": "25:00", "end": "14:00"},
+                    ],
+                }
+            ]
+        },
+        options={},
+        entry_id="warnings_entry_id",
+    )
+    entry.add_to_hass(hass)
+    hass.states.async_set("sensor.today_load", "0")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    sensors = _get_tracker_sensors(hass, entry.entry_id)
+    assert len(sensors) == 1
+    state = hass.states.get(sensors[0].entity_id)
+    assert state is not None
+    warnings = state.attributes.get("config_warnings") or []
+    assert warnings, "config_warnings should be present for invalid stored times"
+    assert "Invalid start time" in warnings[0]
+
+
+@pytest.mark.asyncio
 async def test_renaming_one_window_does_not_change_others_unique_ids(hass: HomeAssistant) -> None:
     """[Unhappy] Renaming one window should only change that window's unique_id."""
     entry = MockConfigEntry(

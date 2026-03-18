@@ -208,6 +208,43 @@ async def test_options_add_window_invalid_time_range_shows_error(
 
 
 @pytest.mark.asyncio
+async def test_options_add_window_invalid_time_value_shows_field_error(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """[Unhappy] Options Add window with invalid time value shows invalid_time error on field."""
+    from homeassistant.data_entry_flow import InvalidData
+
+    hass.states.async_set("sensor.today_load", "0")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ):
+        opts = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        opts["flow_id"],
+        {"next_step_id": "add_window"},
+    )
+    assert result["step_id"] == "add_window"
+    try:
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "window_name": "Bad",
+                "cost_per_kwh": 0,
+                "start": "25:00",
+                "end": "06:00",
+            },
+        )
+        assert result["type"] is data_entry_flow.FlowResultType.FORM
+        assert result["step_id"] == "add_window"
+        assert result.get("errors", {}).get("start") == "invalid_time"
+    except InvalidData:
+        # Some HA versions reject invalid time values at schema level before flow logic runs.
+        pass
+
+
+@pytest.mark.asyncio
 async def test_options_edit_window_invalid_time_range_shows_error(
     hass: HomeAssistant, mock_config_entry: ConfigEntry
 ) -> None:

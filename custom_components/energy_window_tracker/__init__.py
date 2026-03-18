@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
@@ -38,5 +38,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Update options."""
+    # Guard against reload races when options are updated while setup/reload is still running.
+    # (Seen as OperationNotAllowed: ConfigEntryState.SETUP_IN_PROGRESS.)
+    if entry.state != ConfigEntryState.LOADED:
+        _MAIN_LOGGER.debug(
+            "init: async_update_options - entry_id=%s state=%s; skip reload",
+            entry.entry_id,
+            entry.state,
+        )
+        return
     _MAIN_LOGGER.warning("init: async_update_options - entry_id=%s, reloading", entry.entry_id)
     await hass.config_entries.async_reload(entry.entry_id)

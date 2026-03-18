@@ -69,6 +69,19 @@ def _stable_window_unique_id(entry_id: str, source_slug: str, window_name: str) 
     return f"{entry_id}_{source_slug}_{slug}_{h}"
 
 
+def _window_name_from_original_name(original_name: str, source_slug: str) -> str:
+    """Best-effort extraction of window name from entity registry original_name.
+
+    Older versions used name formats like "{source_slug} {window_name}" during setup,
+    so entity registry original_name may include the source slug prefix.
+    """
+    name = (original_name or "").strip()
+    prefix = f"{(source_slug or '').strip()} "
+    if prefix.strip() and name.startswith(prefix):
+        return name[len(prefix) :].strip()
+    return name
+
+
 @dataclass
 class WindowConfig:
     """Configuration for a single window."""
@@ -475,8 +488,10 @@ async def async_setup_entry(
                 continue
             if not entity_entry.unique_id.startswith(f"{entry.entry_id}_{slug}_"):
                 continue
-            if entity_entry.original_name and entity_entry.original_name not in existing_unique_id_by_name:
-                existing_unique_id_by_name[entity_entry.original_name] = entity_entry.unique_id
+            if entity_entry.original_name:
+                key = _window_name_from_original_name(entity_entry.original_name, slug)
+                if key and key not in existing_unique_id_by_name:
+                    existing_unique_id_by_name[key] = entity_entry.unique_id
         # Use HA configured timezone so window start/end and "today" match the frontend
         tz_str = getattr(hass.config, "time_zone", None) or "UTC"
         tz = await hass.async_add_executor_job(dt_util.get_time_zone, tz_str)

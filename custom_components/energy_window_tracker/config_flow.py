@@ -860,9 +860,9 @@ class EnergyWindowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_show_form(step_id="edit_window", data_schema=schema)
             name = (w_name or "").strip() or None
             raw_to_replace = (same_name[0].get(CONF_WINDOW_NAME) or "").strip()
-            new_windows = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "").strip() != raw_to_replace]
-            for s, e in ranges_list:
-                new_windows.append({CONF_WINDOW_NAME: name, CONF_WINDOW_START: s, CONF_WINDOW_END: e, CONF_COST_PER_KWH: cost_val})
+            new_windows = _replace_window_group_preserve_order(
+                windows, raw_to_replace, name, ranges_list, cost_val
+            )
             self._pending_sources[0][CONF_WINDOWS] = new_windows
             return await self.async_step_configure_menu(None)
         _MAIN_LOGGER.warning("config flow: showing form step_id=edit_window")
@@ -990,6 +990,49 @@ def _windows_matching_edit_name(windows: list[dict[str, Any]], edit_name: str) -
             if effective == edit_name:
                 return [ww for ww in windows if (ww.get(CONF_WINDOW_NAME) or "").strip() == raw]
     return []
+
+
+def _replace_window_group_preserve_order(
+    windows: list[dict[str, Any]],
+    raw_to_replace: str,
+    new_name: str | None,
+    ranges_list: list[tuple[str, str]],
+    cost_per_kwh: float,
+) -> list[dict[str, Any]]:
+    """Replace all windows matching raw_to_replace, preserving the group's position."""
+    target = (raw_to_replace or "").strip()
+    replaced = False
+    out: list[dict[str, Any]] = []
+
+    for w in windows:
+        raw = (w.get(CONF_WINDOW_NAME) or "").strip()
+        if raw != target:
+            out.append(w)
+            continue
+        if replaced:
+            continue
+        for s, e in ranges_list:
+            out.append(
+                {
+                    CONF_WINDOW_NAME: new_name,
+                    CONF_WINDOW_START: s,
+                    CONF_WINDOW_END: e,
+                    CONF_COST_PER_KWH: cost_per_kwh,
+                }
+            )
+        replaced = True
+
+    if not replaced:
+        for s, e in ranges_list:
+            out.append(
+                {
+                    CONF_WINDOW_NAME: new_name,
+                    CONF_WINDOW_START: s,
+                    CONF_WINDOW_END: e,
+                    CONF_COST_PER_KWH: cost_per_kwh,
+                }
+            )
+    return out
 
 
 def _window_display_name(w: dict[str, Any], index: int, fallback_template: str) -> str:
@@ -1575,9 +1618,9 @@ class EnergyWindowOptionsFlow(config_entries.OptionsFlow):
                 return self.async_show_form(step_id="edit_window", data_schema=schema)
             name = (w_name or "").strip() or None
             raw_to_replace = (same_name[0].get(CONF_WINDOW_NAME) or "").strip()
-            new_windows = [w for w in windows if (w.get(CONF_WINDOW_NAME) or "").strip() != raw_to_replace]
-            for s, e in ranges_list:
-                new_windows.append({CONF_WINDOW_NAME: name, CONF_WINDOW_START: s, CONF_WINDOW_END: e, CONF_COST_PER_KWH: cost_val})
+            new_windows = _replace_window_group_preserve_order(
+                windows, raw_to_replace, name, ranges_list, cost_val
+            )
             current_name = src.get(CONF_NAME) or None
             options_to_persist = await self._save_source(source_entity, new_windows, source_name=current_name)
             self._pending_add_ranges = []

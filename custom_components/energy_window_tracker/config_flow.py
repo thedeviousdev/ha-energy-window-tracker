@@ -6,12 +6,16 @@ Form field labels (e.g. "1 - Start time", "2 - End time") appear in the UI when 
 - Add an entry: step "Add window" (windows) and "Add new window" (add_window)
 - Configure an entry: "Add new window" and "Edit window" (add_window, edit_window)
 
-Labels are built in Python only: _get_window_form_labels() loads start_time and end_time
-from translations (keys "start_time", "end_time"), then builds "{index} - Start time" etc.
-for each range slot (index 1, 2, ...) and passes them as description= to the schema.
+Important: in Home Assistant flows, the visible *field label* comes from translations for
+the field key under config.step.<step_id>.data.<field> / options.step.<step_id>.data.<field>.
+For this integration, the time fields are keyed as start/end/start_1/end_1/... so translations
+must include those keys (e.g. "start": "1 - Start time", "start_1": "2 - Start time", etc.).
 
-Translation files (strings.json, translations/en.json) need only start_time and end_time
-under config.step.<step_id>.data and options.step.<step_id>.data for the window steps.
+_get_window_form_labels() builds helper strings too, but those are used as schema descriptions
+and are not reliably shown as the field label for selector fields.
+
+Translation files (strings.json, translations/en.json) therefore need start/end/start_1/end_1...
+as well as start_time/end_time for these window steps.
 """
 
 from __future__ import annotations

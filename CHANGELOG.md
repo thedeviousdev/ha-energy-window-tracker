@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.35](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.34...v2.3.35) (2026-03-18)
+
+
+### Bug Fixes
+
+* stabilize window entity ids and range labels ([#209](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/209)) ([022bc65](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/022bc65d4cb3606e3c18fd3e4c16652cc1b94f28))
+
 ## [2.3.34](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.33...v2.3.34) (2026-03-10)
 
 

@@ -327,6 +327,56 @@ async def test_sensor_exposes_config_warnings_for_invalid_stored_times(hass: Hom
 
 
 @pytest.mark.asyncio
+async def test_preserves_existing_unique_id_from_registry_when_original_name_has_source_prefix(
+    hass: HomeAssistant,
+) -> None:
+    """[Happy] Preserve old index-based unique_id using registry original_name with source prefix."""
+    entry = MockConfigEntry(
+        domain="energy_window_tracker",
+        title="Compat",
+        data={
+            "sources": [
+                {
+                    "source_entity": "sensor.today_load",
+                    "name": "Energy",
+                    "windows": [
+                        {"name": "Peak", "start": "09:00", "end": "12:00"},
+                    ],
+                }
+            ]
+        },
+        options={},
+        entry_id="compat_entry_id",
+    )
+    entry.add_to_hass(hass)
+
+    # Seed registry with an "old style" unique_id (index-based) and original_name including source slug prefix.
+    reg = er.async_get(hass)
+    old_unique_id = f"{entry.entry_id}_today_load_0"
+    reg.async_get_or_create(
+        domain="sensor",
+        platform="energy_window_tracker",
+        unique_id=old_unique_id,
+        config_entry=entry,
+        original_name="today_load Peak",
+        suggested_object_id="today_load_peak",
+    )
+
+    hass.states.async_set("sensor.today_load", "0")
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value={},
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    entities = _get_tracker_sensors(hass, entry.entry_id)
+    assert len(entities) == 1
+    assert entities[0].unique_id == old_unique_id
+
+
+@pytest.mark.asyncio
 async def test_renaming_one_window_does_not_change_others_unique_ids(hass: HomeAssistant) -> None:
     """[Unhappy] Renaming one window should only change that window's unique_id."""
     entry = MockConfigEntry(

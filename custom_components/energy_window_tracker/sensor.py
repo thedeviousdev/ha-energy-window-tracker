@@ -96,20 +96,63 @@ def _parse_hhmm(time_str: str) -> tuple[int, int]:
     return int(parts[0]), int(parts[1])
 
 
+def _parse_hhmm_safe(
+    time_value: Any,
+    fallback: str,
+    window_name: str,
+    which: str,
+    range_index: int,
+) -> tuple[int, int, str | None]:
+    """Parse a time; on error/out-of-range, return fallback and a warning message."""
+    raw = "" if time_value is None else str(time_value)
+    s = raw.strip()
+    if s.count(":") >= 2:
+        s = s.rsplit(":", 1)[0]
+    try:
+        h, m = _parse_hhmm(s)
+        if 0 <= h <= 23 and 0 <= m <= 59:
+            return h, m, None
+    except (TypeError, ValueError, IndexError):
+        pass
+    # fallback is expected valid (HH:MM)
+    fh, fm = _parse_hhmm(fallback)
+    return (
+        fh,
+        fm,
+        f"Invalid {which} time {raw!r} for {window_name} (range {range_index}); used {fallback}",
+    )
+
 def _time_str(h: int, m: int) -> str:
     """Format hour and minute as HH:MM."""
     return f"{h:02d}:{m:02d}"
 
 
-def _parse_windows(config: dict[str, Any]) -> list[WindowConfig]:
+def _parse_windows(config: dict[str, Any]) -> tuple[list[WindowConfig], dict[str, list[str]]]:
     """Parse window config from entry data."""
     windows_data = config.get(CONF_WINDOWS) or []
     _MAIN_LOGGER.warning("_parse_windows: len(windows_data)=%s", len(windows_data))
-    windows = []
+    windows: list[WindowConfig] = []
+    warnings_by_name: dict[str, list[str]] = {}
     for i, p in enumerate(windows_data):
-        start_h, start_m = _parse_hhmm(p.get(CONF_WINDOW_START) or "11:00")
-        end_h, end_m = _parse_hhmm(p.get(CONF_WINDOW_END) or "14:00")
         name = p.get(CONF_WINDOW_NAME) or f"Window {i + 1}"
+        start_h, start_m, w1 = _parse_hhmm_safe(
+            p.get(CONF_WINDOW_START) or "11:00",
+            "11:00",
+            name,
+            "start",
+            i + 1,
+        )
+        end_h, end_m, w2 = _parse_hhmm_safe(
+            p.get(CONF_WINDOW_END) or "14:00",
+            "14:00",
+            name,
+            "end",
+            i + 1,
+        )
+        if w1:
+            warnings_by_name.setdefault(name, []).append(w1)
+        if w2:
+            warnings_by_name.setdefault(name, []).append(w2)
         cost_per_kwh = 0.0
         if CONF_COST_PER_KWH in p and p[CONF_COST_PER_KWH] is not None:
             try:
@@ -127,7 +170,7 @@ def _parse_windows(config: dict[str, Any]) -> list[WindowConfig]:
                 cost_per_kwh=cost_per_kwh,
             )
         )
-    return windows
+    return windows, warnings_by_name
 
 
 class WindowData:
@@ -141,6 +184,7 @@ class WindowData:
         windows: list[WindowConfig],
         store: Store,
         tz: datetime.tzinfo | None = None,
+        config_warnings_by_name: dict[str, list[str]] | None = None,
     ) -> None:
         self.hass = hass
         self._entry_id = entry_id
@@ -148,6 +192,7 @@ class WindowData:
         self._windows = windows
         self._store = store
         self._tz = tz or dt_util.get_default_time_zone()
+        self._config_warnings_by_name = config_warnings_by_name or {}
         self._snapshots: dict[int, WindowSnapshots] = {
             w.index: WindowSnapshots(snapshot_start=None, snapshot_end=None)
             for w in windows
@@ -411,7 +456,7 @@ async def async_setup_entry(
             )
             source_entity = source_entity[0] if isinstance(source_entity, list) and source_entity else str(source_entity)
         source_name = source_config.get(CONF_NAME) or "Window"
-        windows = _parse_windows(source_config)
+        windows, warnings_by_name = _parse_windows(source_config)
         if not windows:
             continue
 
@@ -444,6 +489,7 @@ async def async_setup_entry(
             windows=windows,
             store=store,
             tz=tz,
+            config_warnings_by_name=warnings_by_name,
         )
         await data.load()
         entry_data[slug] = data
@@ -691,6 +737,8 @@ class WindowEnergySensor(RestoreSensor):
             ATTR_STATUS: combined_status,
             "ranges": range_attrs,
         }
+        if (cw := self._data._config_warnings_by_name.get(self._window_name)):
+            attrs["config_warnings"] = list(cw)
         if rates:
             # Always expose cost when rate is configured so automations can track a running balance.
             attrs[ATTR_COST] = round(total_cost, 2)

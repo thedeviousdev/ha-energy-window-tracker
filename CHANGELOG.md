@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.3.36](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.35...v2.3.36) (2026-03-18)
+
+
+### Features
+
+* **sensor:** expose running cost and rate attributes ([9dbf25f](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/9dbf25f54d33b9c60141f4b5fced073ab0870cc5))
+* **sensor:** running cost + rate attributes ([#212](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/212)) ([1777a73](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/1777a734247084a65e9af24c9ed93783af903d51))
+
 ## [2.3.35](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.34...v2.3.35) (2026-03-18)
 
 

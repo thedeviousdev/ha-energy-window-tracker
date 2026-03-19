@@ -288,6 +288,44 @@ async def test_cost_attributes_present_when_rate_configured_before_window(hass: 
 
 
 @pytest.mark.asyncio
+async def test_late_snapshot_uses_zero_baseline_and_shows_current_total(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
+    """[Happy] During-window late snapshot uses baseline 0, so state equals current source total."""
+    noon_today = dt_util.now().replace(hour=12, minute=0, second=0, microsecond=0)
+    hass.states.async_set("sensor.today_load", "2.0")
+    # stale snapshot_date forces "during_window (no snapshot)" path before late snapshot runs
+    stored = {"snapshot_date": "2020-01-01", "windows": {}}
+    with patch(
+        "custom_components.energy_window_tracker.sensor.Store.async_load",
+        new_callable=AsyncMock,
+        return_value=stored,
+    ), patch(
+        "custom_components.energy_window_tracker.sensor.dt_util.now",
+        return_value=noon_today,
+    ):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+
+    our_entities = _get_tracker_sensors(hass, mock_config_entry.entry_id)
+    assert len(our_entities) == 1
+    state = hass.states.get(our_entities[0].entity_id)
+    assert state is not None
+    assert state.attributes.get("status", "").startswith("during_window")
+    assert float(state.state) == 2.0
+
+    with patch(
+        "custom_components.energy_window_tracker.sensor.dt_util.now",
+        return_value=noon_today,
+    ):
+        hass.states.async_set("sensor.today_load", "2.5")
+        await hass.async_block_till_done()
+    state = hass.states.get(our_entities[0].entity_id)
+    assert state is not None
+    assert float(state.state) == 2.5
+
+
+@pytest.mark.asyncio
 async def test_sensor_exposes_config_warnings_for_invalid_stored_times(hass: HomeAssistant) -> None:
     """[Unhappy] Invalid stored times do not crash; sensor exposes config_warnings attribute."""
     entry = MockConfigEntry(

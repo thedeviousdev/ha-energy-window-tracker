@@ -13,6 +13,7 @@
       ],
       "extra-files": [
         "custom_components/energy_window_tracker/manifest.json",
+        "custom_components/energy_window_tracker_beta/manifest.json",
         "pyproject.toml"
       ]
     }

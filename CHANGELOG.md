@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.38](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.37...v2.3.38) (2026-03-19)
+
+
+### Bug Fixes
+
+* **sensor:** avoid zeroed readings on late snapshots ([#220](https://github.com/thedeviousdev/ha-energy-window-tracker/issues/220)) ([2b9f01d](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/2b9f01deca935da9d5379ec5c8e847b9ab111511))
+
 ## [2.3.37](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.36...v2.3.37) (2026-03-18)
 
 

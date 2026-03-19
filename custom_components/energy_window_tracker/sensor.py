@@ -293,9 +293,11 @@ class WindowData:
         return 0.0, "after_window (no snapshots)"
 
     def take_late_start_snapshot(self, window_index: int) -> bool:
-        """If we're during the window with no start snapshot, use current value as start (e.g. missed event)."""
-        value = self.get_source_value()
-        if value is None:
+        """If we're during the window with no start snapshot, use 0 as baseline so the window shows current total.
+
+        (Using current value as baseline would zero the display until more energy is used.)
+        """
+        if self.get_source_value() is None:
             return False
         snap = self._snapshots.get(window_index) or WindowSnapshots(None, None)
         if snap.snapshot_start is not None:
@@ -313,7 +315,7 @@ class WindowData:
             if not self._snapshot_date:
                 self._snapshot_date = self._now().date().isoformat()
             self._snapshots[window_index] = WindowSnapshots(
-                snapshot_start=value,
+                snapshot_start=0.0,
                 snapshot_end=None,
             )
             self._schedule_save()

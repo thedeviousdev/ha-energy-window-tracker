@@ -1342,10 +1342,11 @@ async def test_sensor_updates_after_load_with_yesterday_snapshots(
         assert state is not None
         # Cleared snapshots -> either "during_window (no snapshot)" or "during_window" if late-start already ran
         assert state.attributes.get("status", "").startswith("during_window")
-        assert state.state == "0.0"
-        # Late-start snapshot (2.0) taken; source increase to 2.5 should show 0.5
+        # Late-start uses baseline 0 so window shows current total (2.0), not zeroed
+        assert float(state.state) == 2.0
+        # Source increase to 2.5 should show 2.5 (still baseline 0)
         hass.states.async_set("sensor.today_load", "2.5")
         await hass.async_block_till_done()
         state = hass.states.get(sensors[0].entity_id)
         assert state is not None
-        assert float(state.state) == 0.5
+        assert float(state.state) == 2.5

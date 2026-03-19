@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.39](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.38...v2.3.39) (2026-03-19)
+
+
+### Features
+
+* add window-first beta integration ([721f659](https://github.com/thedeviousdev/ha-energy-window-tracker/commit/721f659f117f720edfec2d3539553a9f10f75206))
+
 ## [2.3.38](https://github.com/thedeviousdev/ha-energy-window-tracker/compare/v2.3.37...v2.3.38) (2026-03-19)
 
 
